@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.python-version
+.pytest_cache/
+
+# IDE
+.cursor/
+
+# Secrets & browser profile (cookies, local storage)
+credentials.local.env
+profiles/
+bookings.json
+bookings.txt
+network_capture/
