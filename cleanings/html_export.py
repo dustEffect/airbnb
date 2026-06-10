@@ -15,7 +15,12 @@ from cleanings.calendar_model import (
     build_occupied_cells,
     month_grid,
 )
-from cleanings.main import MONTHS_PT
+from cleanings.booking_helpers import MONTHS_PT
+from cleanings.portugal_holidays import portugal_national_holidays
+
+HOLIDAY_ICON = "🇵🇹"
+HOLIDAY_BG = "#D4A017"
+HOLIDAY_BORDER = "#A67C00"
 
 _CSS = """
 :root {
@@ -112,7 +117,6 @@ main {
 }
 .grid {
   display: grid;
-  grid-template-columns: 2.5rem repeat(37, var(--day-size));
   gap: 2px;
   width: max-content;
   min-width: 100%;
@@ -139,7 +143,18 @@ main {
   cursor: pointer;
   user-select: none;
 }
-.cell.weekday-header.is-palm {
+.cell.weekday-header.has-icon {
+  font-size: .85rem;
+  line-height: 1;
+}
+.cell.weekday-header.has-holiday {
+  background: var(--holiday-bg, #d4a017);
+  border-color: var(--holiday-border, #a67c00);
+}
+.cell.weekday-header .weekday-letter {
+  font-size: .65rem;
+}
+.cell.weekday-header .holiday-marker {
   font-size: .85rem;
   line-height: 1;
 }
@@ -346,6 +361,15 @@ def _storage_key(year: int) -> str:
     return f"airbnb-cleanings-comments-{year}"
 
 
+def _weekday_icons_storage_key(year: int) -> str:
+    return f"airbnb-cleanings-weekday-icons-{year}"
+
+
+def weekday_header_id(year: int, month: int, column_index: int) -> str:
+    """Stable DOM / localStorage key for a weekday header cell."""
+    return f"ac-wh-{year}-{month:02d}-c{column_index:02d}"
+
+
 def _cell_title(cell: OccupiedCell) -> str:
     parts = [
         f"{cell.listing}: {cell.start_date.isoformat()} → {cell.end_date.isoformat()}",
@@ -355,58 +379,100 @@ def _cell_title(cell: OccupiedCell) -> str:
     return " | ".join(parts)
 
 
+def _grid_column(slot_index: int) -> int:
+    """Map a month slot index to a CSS grid column (column 1 is the listing label)."""
+    return slot_index + 2
+
+
+def _weekday_header_html(
+    col: GridColumn,
+    *,
+    year: int,
+    month: int,
+    holidays: dict[date, str],
+    grid_col: int,
+) -> str:
+    label = html.escape(col.weekday_label)
+    cls = "cell header weekday-header"
+    title_attr = ""
+
+    if col.day is not None:
+        day_date = date(year, month, col.day)
+        if day_date in holidays:
+            cls += " has-holiday"
+            holiday_name = html.escape(holidays[day_date], quote=True)
+            title_attr = f' title="Feriado: {holiday_name}"'
+            content = f'<span class="holiday-marker" aria-hidden="true">{HOLIDAY_ICON}</span>'
+        else:
+            content = f'<span class="weekday-letter">{label}</span>'
+    else:
+        content = label
+
+    header_id = weekday_header_id(year, month, col.column_index)
+    return (
+        f'<div id="{html.escape(header_id)}" class="{cls}"'
+        f' style="grid-row:1;grid-column:{grid_col}"'
+        f' data-default="{label}"{title_attr}>{content}</div>'
+    )
+
+
 def _render_month(
     year: int,
     month: int,
     month_name: str,
     occupied: dict[date, dict[str, OccupiedCell]],
+    holidays: dict[date, str],
 ) -> str:
     columns = month_grid(year, month)
-    weekday_row = columns  # one header per column slot
+    num_slots = len(columns)
 
-    grid_style = f"--weekend-bg: {html.escape(WEEKEND_COLOR)};"
+    grid_style = (
+        f"--weekend-bg: {html.escape(WEEKEND_COLOR)};"
+        f" --holiday-bg: {HOLIDAY_BG};"
+        f" --holiday-border: {HOLIDAY_BORDER};"
+        f" grid-template-columns: 2.5rem repeat({num_slots}, var(--day-size));"
+    )
     parts: list[str] = [
         f'<section class="month-card" id="{html.escape(month_name.lower())}">',
         f"<h2>{html.escape(month_name)}</h2>",
         '<div class="month-scroll">',
         f'<div class="grid" style="{grid_style}">',
-        '<div class="cell listing-label"></div>',
+        '<div class="cell listing-label" style="grid-row:1;grid-column:1"></div>',
     ]
 
-    for col in weekday_row:
-        label = html.escape(col.weekday_label)
+    for slot_index, col in enumerate(columns):
+        grid_col = _grid_column(slot_index)
         parts.append(
-            f'<div class="cell header weekday-header" data-default="{label}">'
-            f"{label}</div>"
+            _weekday_header_html(
+                col, year=year, month=month, holidays=holidays, grid_col=grid_col
+            )
         )
 
-    parts.append('<div class="cell listing-label">dia</div>')
-    for col in columns:
+    parts.append(
+        '<div class="cell listing-label" style="grid-row:2;grid-column:1">dia</div>'
+    )
+    for slot_index, col in enumerate(columns):
         if col.day is None:
-            cls = "cell"
-            if col.is_weekend:
-                cls += " weekend-empty"
-            parts.append(f'<div class="{cls}"></div>')
-        else:
-            cls = "cell day-num"
-            if col.is_weekend:
-                cls += " weekend-empty"
-            parts.append(f'<div class="{cls}">{col.day}</div>')
+            continue
+        grid_col = _grid_column(slot_index)
+        cls = "cell day-num"
+        if col.is_weekend:
+            cls += " weekend-empty"
+        parts.append(
+            f'<div class="{cls}" style="grid-row:2;grid-column:{grid_col}">{col.day}</div>'
+        )
 
-    for listing in LISTING_ROW_ORDER:
+    for row_index, listing in enumerate(LISTING_ROW_ORDER, start=3):
         color = LISTING_COLORS[listing]
         parts.append(
-            f'<div class="cell listing-label" style="color:{color}">'
-            f"{html.escape(listing)}</div>"
+            f'<div class="cell listing-label" style="color:{color};'
+            f'grid-row:{row_index};grid-column:1">{html.escape(listing)}</div>'
         )
-        for col in columns:
+        for slot_index, col in enumerate(columns):
             if col.day is None:
-                cls = "cell listing-row"
-                if col.is_weekend:
-                    cls += " weekend-empty"
-                parts.append(f'<div class="{cls}"></div>')
                 continue
 
+            grid_col = _grid_column(slot_index)
             day_date = date(year, month, col.day)
             stay = occupied.get(day_date, {}).get(listing)
             if stay:
@@ -416,7 +482,7 @@ def _render_month(
                 parts.append(
                     f'<div id="{html.escape(cell_id)}"'
                     f' class="cell listing-row stay stay-comment"'
-                    f' style="background:{color}"'
+                    f' style="background:{color};grid-row:{row_index};grid-column:{grid_col}"'
                     f' title="{title}"'
                     f' data-listing="{html.escape(listing)}"'
                     f' data-date="{day_date.strftime("%Y%m%d")}"'
@@ -426,7 +492,9 @@ def _render_month(
                 cls = "cell listing-row"
                 if col.is_weekend:
                     cls += " weekend-empty"
-                parts.append(f'<div class="{cls}"></div>')
+                parts.append(
+                    f'<div class="{cls}" style="grid-row:{row_index};grid-column:{grid_col}"></div>'
+                )
 
     parts.extend(["</div>", "</div>", "</section>"])
     return "\n".join(parts)
@@ -434,12 +502,21 @@ def _render_month(
 
 def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     occupied = build_occupied_cells(year, bookings)
+    holidays = portugal_national_holidays(year)
 
-    legend_items = "".join(
+    listing_legend = "".join(
         f'<span class="legend-item">'
         f'<span class="legend-swatch" style="background:{color}"></span>'
         f"{html.escape(label)}</span>"
         for label, color in LISTING_COLORS.items()
+    )
+    legend_items = (
+        f"{listing_legend}"
+        f'<span class="legend-item">'
+        f'<span class="legend-swatch" style="background:{HOLIDAY_BG};border:2px solid {HOLIDAY_BORDER};'
+        f'font-size:.75rem;line-height:1rem;text-align:center">'
+        f"{HOLIDAY_ICON}</span>"
+        f"Feriado nacional</span>"
     )
 
     nav_links = "".join(
@@ -448,11 +525,12 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     )
 
     months_html = "\n".join(
-        _render_month(year, month, name, occupied)
+        _render_month(year, month, name, occupied, holidays)
         for month, name in enumerate(MONTHS_PT, start=1)
     )
 
     storage_key = _storage_key(year)
+    weekday_icons_storage_key = _weekday_icons_storage_key(year)
     return f"""<!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -579,18 +657,100 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
 
   applySavedComments();
 
+  const WEEKDAY_ICONS_STORAGE_KEY = {weekday_icons_storage_key!r};
+  const PLANE_ICON = "\u2708\ufe0f";
   const PALM_ICON = "\U0001f334";
-  document.querySelectorAll(".weekday-header").forEach((cell) => {{
-    cell.addEventListener("dblclick", () => {{
-      if (cell.classList.contains("is-palm")) {{
-        cell.textContent = cell.dataset.default;
-        cell.classList.remove("is-palm");
-      }} else {{
-        cell.textContent = PALM_ICON;
-        cell.classList.add("is-palm");
+  const SPONGE_ICON = "\U0001f9fd";
+  const HOLIDAY_ICON = "{HOLIDAY_ICON}";
+  const WEEKDAY_ICONS = {{
+    plane: PLANE_ICON,
+    palm: PALM_ICON,
+    sponge: SPONGE_ICON,
+  }};
+
+  function loadWeekdayIcons() {{
+    try {{
+      return JSON.parse(localStorage.getItem(WEEKDAY_ICONS_STORAGE_KEY) || "{{}}");
+    }} catch (_err) {{
+      return {{}};
+    }}
+  }}
+
+  function saveWeekdayIcons(icons) {{
+    localStorage.setItem(WEEKDAY_ICONS_STORAGE_KEY, JSON.stringify(icons));
+  }}
+
+  function defaultWeekdayHeader(cell) {{
+    const letter = cell.dataset.default;
+    cell.dataset.iconState = "default";
+    cell.classList.remove("has-icon");
+    if (cell.classList.contains("has-holiday")) {{
+      cell.innerHTML =
+        '<span class="holiday-marker" aria-hidden="true">' + HOLIDAY_ICON + '</span>';
+    }} else {{
+      cell.innerHTML = '<span class="weekday-letter">' + letter + '</span>';
+    }}
+  }}
+
+  function setWeekdayIcon(cell, state) {{
+    cell.dataset.iconState = state;
+    cell.classList.add("has-icon");
+    cell.textContent = WEEKDAY_ICONS[state];
+  }}
+
+  function applyWeekdayIconState(cell, state) {{
+    if (state === "default") {{
+      defaultWeekdayHeader(cell);
+    }} else {{
+      setWeekdayIcon(cell, state);
+    }}
+  }}
+
+  function persistWeekdayIconState(cell) {{
+    if (!cell.id) return;
+    const icons = loadWeekdayIcons();
+    const state = cell.dataset.iconState || "default";
+    if (state === "default") {{
+      delete icons[cell.id];
+    }} else {{
+      icons[cell.id] = state;
+    }}
+    saveWeekdayIcons(icons);
+  }}
+
+  function applySavedWeekdayIcons() {{
+    const icons = loadWeekdayIcons();
+    document.querySelectorAll(".weekday-header").forEach((cell) => {{
+      if (!cell.id) return;
+      let saved = icons[cell.id];
+      if (saved === "bucket") saved = "sponge";
+      if (saved && saved !== "default" && WEEKDAY_ICONS[saved]) {{
+        applyWeekdayIconState(cell, saved);
+      }} else if (!cell.dataset.iconState) {{
+        cell.dataset.iconState = "default";
       }}
     }});
+  }}
+
+  document.querySelectorAll(".weekday-header").forEach((cell) => {{
+    if (!cell.dataset.iconState) {{
+      cell.dataset.iconState = "default";
+    }}
+    cell.addEventListener("dblclick", () => {{
+      const state = cell.dataset.iconState || "default";
+      if (state === "default") {{
+        setWeekdayIcon(cell, "plane");
+      }} else if (state === "plane") {{
+        setWeekdayIcon(cell, "palm");
+      }} else if (state === "palm") {{
+        setWeekdayIcon(cell, "sponge");
+      }} else {{
+        defaultWeekdayHeader(cell);
+      }}
+      persistWeekdayIconState(cell);
+    }});
   }});
+  applySavedWeekdayIcons();
 }})();
   </script>
 </body>

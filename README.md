@@ -1,6 +1,6 @@
 # Airbnb scripts
 
-Personal automation for an Airbnb multicalendar: fetch reservations, format checkout summaries, and build a cleaning calendar spreadsheet.
+Personal automation for an Airbnb multicalendar: fetch reservations, format checkout summaries, and build a cleaning calendar HTML page.
 
 ## Pipelines
 
@@ -8,13 +8,13 @@ Personal automation for an Airbnb multicalendar: fetch reservations, format chec
 |--------|---------|
 | `./fetch.sh` | Log into Airbnb and write `shared/bookings.json` |
 | `./checkouts.sh` | Fetch (optional) and write `checkouts/checkouts.txt` |
-| `./cleanings.sh` | Fetch (optional), update `cleanings/templates/cleanings-map.xlsx`, and write `cleanings/templates/cleanings-{year}.html` |
+| `./cleanings.sh` | Fetch (optional) and write `cleanings/templates/cleanings-{year}.html` |
 
 All pipelines share the same bookings file: `shared/bookings.json`.
 
 ```
 fetch ──► shared/bookings.json ──► checkouts/checkouts.txt
-                              └──► cleanings calendar (xlsx + html)
+                              └──► cleanings calendar (html)
 ```
 
 ## Setup
@@ -56,13 +56,12 @@ cp credentials.local.env.example credentials.local.env
 ### Cleaning calendar
 
 ```bash
-./cleanings.sh                      # fetch full calendar year + update workbook
+./cleanings.sh                      # fetch full calendar year + write HTML
 ./cleanings.sh --no-fetch           # reuse existing shared/bookings.json
 ./cleanings.sh --year 2026 --no-fetch
-./cleanings.sh --no-html --no-fetch   # xlsx only, skip HTML export
 ```
 
-The Excel template lives at `cleanings/templates/cleanings-map.xlsx`. Each run clones the `template` sheet into a year-named sheet (e.g. `2026`) and writes a browser-viewable calendar at `cleanings/templates/cleanings-{year}.html` with the same five listings and stay windows.
+Each run writes a browser-viewable calendar at `cleanings/templates/cleanings-{year}.html` with the five listings and stay windows. To publish on GitHub Pages, copy it to `docs/index.html` and push.
 
 ### Console entry points
 
@@ -93,7 +92,7 @@ Or via Python modules:
 ```
 fetch/           Airbnb browser automation and bookings extraction
 checkouts/       Checkout text formatting
-cleanings/       Excel cleaning calendar (template in templates/)
+cleanings/       HTML cleaning calendar
 shared/          Paths and listing label mapping
 ```
 

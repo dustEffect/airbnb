@@ -6,7 +6,7 @@ import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from cleanings.main import (
+from cleanings.booking_helpers import (
     FIRST_DAY_COL,
     LAST_DAY_COL,
     TEMPLATE_WEEKDAY_PHASE,
@@ -44,7 +44,7 @@ class OccupiedCell:
 
 @dataclass(frozen=True)
 class GridColumn:
-    """One column slot in the month grid (aligned to the Excel template)."""
+    """One column slot in the month grid."""
 
     column_index: int
     day: int | None
