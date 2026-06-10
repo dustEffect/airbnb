@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run main.py with the .venv Python (no need to activate the venv).
+# Run cleanings/main.py with the .venv Python (no need to activate the venv).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PY="$ROOT/.venv/bin/python"
 if [[ ! -x "$PY" ]]; then
@@ -8,4 +8,4 @@ if [[ ! -x "$PY" ]]; then
   echo "  cd \"$ROOT\" && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt" >&2
   exit 1
 fi
-exec "$PY" "$ROOT/main.py" "$@"
+exec env PYTHONPATH="$ROOT:$ROOT/fetch" "$PY" "$ROOT/cleanings/main.py" "$@"

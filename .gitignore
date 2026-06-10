@@ -10,6 +10,6 @@ __pycache__/
 # Secrets & browser profile (cookies, local storage)
 credentials.local.env
 profiles/
-bookings.json
-bookings.txt
+shared/bookings.json
+checkouts/checkouts.txt
 network_capture/

@@ -4,21 +4,16 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 
 from playwright.sync_api import APIRequestContext, Page, TimeoutError as PlaywrightTimeoutError
 
-from airbnb_calendar.bookings_format import (
-    print_checkouts_diff_from_payload,
-    write_checkouts_text,
-)
-from airbnb_calendar.airbnb_urls import multicalendar_url
+from shared.paths import bookings_json_path
 
-BOOKINGS_FILENAME = "bookings.json"
-MONTHS_AHEAD = 2
+from airbnb_urls import multicalendar_url
+MONTHS_AHEAD = 3
 LISTINGS_PAGE_SIZE = 6
 
 # Persisted GraphQL operation hashes (from multicalendar network traffic).
@@ -64,16 +59,40 @@ _LISTING_FILTERS = {
 _AIRBNB_API_KEY = "d306zoyjsyarp7ifhu67rjxn52tv0t20"
 
 
-def project_root() -> Path:
-    return Path(__file__).resolve().parent.parent
-
-
 def bookings_output_path(root: Path | None = None) -> Path:
-    return (root or project_root()) / BOOKINGS_FILENAME
+    return bookings_json_path(root)
 
 
-def _date_range(months_ahead: int = MONTHS_AHEAD) -> tuple[str, str]:
-    start = date.today()
+def parse_start_month(value: str) -> date:
+    """Parse YYYY-MM into the first day of that month."""
+    try:
+        year_str, month_str = value.strip().split("-", 1)
+        return date(int(year_str), int(month_str), 1)
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"Invalid month {value!r}; use YYYY-MM (e.g. 2026-06).") from exc
+
+
+def _print_processing_intro(start_date: str, end_date: str) -> None:
+    print(
+        f"Processing Airbnb multicalendar bookings from {start_date} to {end_date}.",
+        flush=True,
+    )
+    print(flush=True)
+
+
+def _date_range(
+    months_ahead: int = MONTHS_AHEAD,
+    *,
+    from_month: date | None = None,
+    calendar_year: int | None = None,
+) -> tuple[str, str]:
+    if calendar_year is not None:
+        start = date(calendar_year, 1, 1)
+        end = date(calendar_year, 12, 31)
+        return start.isoformat(), end.isoformat()
+
+    today = date.today()
+    start = from_month or today
     end = start + timedelta(days=months_ahead * 31)
     return start.isoformat(), end.isoformat()
 
@@ -329,7 +348,8 @@ def extract_bookings_if_multicalendar(
     *,
     root: Path | None = None,
     months_ahead: int = MONTHS_AHEAD,
-    diff_checkouts: bool = False,
+    from_month: date | None = None,
+    calendar_year: int | None = None,
 ) -> Path | None:
     """
     Fetch bookings for the next `months_ahead` months and write bookings.json.
@@ -342,7 +362,12 @@ def extract_bookings_if_multicalendar(
         print("Skipping bookings extract: multicalendar did not load.", flush=True)
         return None
 
-    start_date, end_date = _date_range(months_ahead)
+    start_date, end_date = _date_range(
+        months_ahead,
+        from_month=from_month,
+        calendar_year=calendar_year,
+    )
+    _print_processing_intro(start_date, end_date)
     origin = _api_origin(page)
     request = page.context.request
 
@@ -385,17 +410,9 @@ def extract_bookings_if_multicalendar(
     }
 
     out_path = bookings_output_path(root)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
         json.dumps(output, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
-    print(
-        f"Wrote {len(bookings)} bookings to {out_path} ({start_date} → {end_date}).",
-        flush=True,
-        file=sys.stderr if diff_checkouts else sys.stdout,
-    )
-    if diff_checkouts:
-        print_checkouts_diff_from_payload(output, root=root)
-    else:
-        write_checkouts_text(bookings_path=out_path, root=root)
     return out_path

@@ -1,4 +1,4 @@
-"""Tests for checkout formatting rules in bookings_format.py."""
+"""Tests for checkout formatting rules in checkouts_format.py."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from airbnb_calendar.bookings_format import (
+from checkouts_format import (
     WARNING_ICON,
     _format_checkout_line,
     _listing_label,
@@ -24,6 +24,13 @@ EA = "Espaço Renovado a 5 minutos a pé da Ponte Luíz I"
 T0 = "Estúdio Renovado c/ metro à porta"
 T1 = "T1 Renovado c/ metro à porta"
 T2 = "Totalmente Renovado, metro à porta"
+
+
+def _existing_checkouts_file(tmp_path: Path, text: str) -> Path:
+    path = tmp_path / "checkouts" / "checkouts.txt"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
 
 
 def _booking(
@@ -215,42 +222,139 @@ class TestWriteCheckoutsText:
         self, tmp_path: Path, capsys
     ) -> None:
         root = tmp_path
-        bookings_path = root / "bookings.json"
+        bookings_path = root / "shared" / "bookings.json"
+        bookings_path.parent.mkdir(parents=True, exist_ok=True)
         bookings_path.write_text(
             json.dumps(_payload(_booking(T2, "2026-06-10", "2026-06-14"))),
             encoding="utf-8",
         )
         out_path = write_checkouts_text(bookings_path=bookings_path, root=root)
         captured = capsys.readouterr()
+        assert out_path == root / "checkouts" / "checkouts.txt"
         assert out_path.read_text(encoding="utf-8") == captured.out
-        assert "Wrote checkout summary" in captured.err
+        assert captured.err == ""
 
 
 class TestPrintCheckoutsDiff:
-    def test_returns_false_when_text_is_identical(self, tmp_path: Path) -> None:
-        existing = tmp_path / "bookings.txt"
-        existing.write_text("JUN.\n8 seg. EB\n", encoding="utf-8")
-        assert print_checkouts_diff("JUN.\n8 seg. EB\n", existing_path=existing) is False
+    _DIFF_FROM = date(2026, 1, 1)
 
-    def test_prints_removed_and_added_rows(self, tmp_path: Path, capsys) -> None:
-        existing = tmp_path / "bookings.txt"
-        existing.write_text("JUN.\n8 seg. EB\n", encoding="utf-8")
+    def test_returns_false_when_text_is_identical(self, tmp_path: Path) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n")
+        assert (
+            print_checkouts_diff(
+                "JUN.\n8 seg. EB\n",
+                existing_path=existing,
+                diff_from_date=self._DIFF_FROM,
+                reference_year=2026,
+            )
+            is False
+        )
+
+    def test_ignores_warning_icon_only_changes(self, tmp_path: Path, capsys) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n")
         changed = print_checkouts_diff(
             "JUN.\n8 seg. EB ⚠️\n",
             existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
         )
         output = capsys.readouterr().out
+        assert changed is False
+        assert output == ""
+
+    def test_diffs_listing_units_independently(self, tmp_path: Path, capsys) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n")
+        changed = print_checkouts_diff(
+            "JUN.\n8 seg. EA\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        output = capsys.readouterr().out.splitlines()
         assert changed is True
-        assert output.splitlines() == ["- 8 seg. EB", f"+ 8 seg. EB {WARNING_ICON}"]
+        assert output == ["JUN", "- 8 seg. EB", "+ 8 seg. EA"]
+
+    def test_ignores_parenthetical_times(self, tmp_path: Path, capsys) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB (11h)\n")
+        changed = print_checkouts_diff(
+            "JUN.\n8 seg. EB (15h)\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_ignores_checkout_time_annotations(self, tmp_path: Path, capsys) -> None:
+        existing = _existing_checkouts_file(
+            tmp_path,
+            "JUN.\n"
+            "8 seg. (>10:00) EA\n"
+            "8 seg. (>9:00) EB ⚠️\n"
+            "9 ter. (>14:00) T2 ⚠️\n",
+        )
+        changed = print_checkouts_diff(
+            "JUN.\n8 seg. EA\n8 seg. EB ⚠️\n9 ter. T2 ⚠️\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_skips_checkouts_before_tomorrow(
+        self, tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class FixedDate(date):
+            @classmethod
+            def today(cls) -> date:
+                return cls(2026, 6, 9)
+
+        monkeypatch.setattr("checkouts_format.date", FixedDate)
+        existing = _existing_checkouts_file(
+            tmp_path,
+            "JUN.\n8 seg. EB\n14 dom. EB\n17 qua. a ? T1\n",
+        )
+        changed = print_checkouts_diff(
+            "JUN.\n8 seg. EB\n14 dom. EA\n17 qua. T1\n",
+            existing_path=existing,
+            reference_year=2026,
+        )
+        output = capsys.readouterr().out.splitlines()
+        assert changed is True
+        assert "- 8 seg. EB" not in output
+        assert "9 ter." not in output
+        assert output == [
+            "JUN",
+            "- 14 dom. EB",
+            "- 17 qua. a ? T1",
+            "+ 14 dom. EA",
+            "+ 17 qua. T1",
+        ]
+
+    def test_prints_gap_window_changes(self, tmp_path: Path, capsys) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUL.\n7 ter. EB\n")
+        changed = print_checkouts_diff(
+            "JUL.\n7 ter. a 12 EB\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        output = capsys.readouterr().out.splitlines()
+        assert changed is True
+        assert output == ["JUL", "- 7 ter. EB", "+ 7 ter. a 12 EB"]
 
     def test_diff_from_payload_uses_formatted_output(self, tmp_path: Path, capsys) -> None:
-        existing = tmp_path / "bookings.txt"
-        existing.write_text("JUN.\n8 seg. EB\n", encoding="utf-8")
+        existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n")
         payload = _payload(
             _booking(EA, "2026-06-05", "2026-06-08"),
             _booking(EA, "2026-06-10", "2026-06-14"),
         )
-        changed = print_checkouts_diff_from_payload(payload, existing_path=existing)
+        changed = print_checkouts_diff_from_payload(
+            payload,
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+        )
         output = capsys.readouterr().out.splitlines()
         assert changed is True
         assert "- 8 seg. EB" in output

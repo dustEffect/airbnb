@@ -7,9 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-
-def project_root() -> Path:
-    return Path(__file__).resolve().parent.parent
+from shared.paths import project_root
 
 
 def load_credentials_env(root: Path | None = None, *, override: bool = True) -> Path | None:

@@ -6,15 +6,20 @@ import json
 import os
 import subprocess
 import time
+from datetime import date
 from pathlib import Path
 
 from playwright.sync_api import BrowserContext, Playwright, sync_playwright
 
-from airbnb_calendar.airbnb_actions import (
+from airbnb_actions import (
     accept_airbnb_cookies_if_present,
     login_airbnb_if_needed,
 )
-from airbnb_calendar.bookings_extract import extract_bookings_if_multicalendar
+from bookings_extract import (
+    MONTHS_AHEAD,
+    extract_bookings_if_multicalendar,
+)
+from shared.paths import project_root
 
 PROFILE_NAME = "calendar-airbnb"
 CDP_PORT = 9223  # remote debugging port to reuse an already-open Chrome instance
@@ -33,10 +38,6 @@ _CHROME_EXTRA_ARGS: tuple[str, ...] = (
     "--disable-save-password-bubble",
     f"--remote-debugging-port={CDP_PORT}",
 )
-
-
-def project_root() -> Path:
-    return Path(__file__).resolve().parent.parent
 
 
 def profile_user_data_dir(root: Path | None = None) -> Path:
@@ -104,8 +105,9 @@ def launch_chrome_profile(
     root: Path | None = None,
     headless: bool = True,
     start_url: str | None = None,
-    diff_checkouts: bool = False,
-    months_ahead: int = 2,
+    months_ahead: int = MONTHS_AHEAD,
+    from_month: date | None = None,
+    calendar_year: int | None = None,
 ) -> None:
     """
     Launch Google Chrome with a dedicated persistent profile directory.
@@ -144,8 +146,9 @@ def launch_chrome_profile(
                     extract_bookings_if_multicalendar(
                         page,
                         root=root,
-                        diff_checkouts=diff_checkouts,
                         months_ahead=months_ahead,
+                        from_month=from_month,
+                        calendar_year=calendar_year,
                     )
     finally:
         _shutdown_context(context)
@@ -156,8 +159,9 @@ def open_profile_until_exit(
     root: Path | None = None,
     headless: bool = True,
     start_url: str | None = None,
-    diff_checkouts: bool = False,
-    months_ahead: int = 2,
+    months_ahead: int = MONTHS_AHEAD,
+    from_month: date | None = None,
+    calendar_year: int | None = None,
 ) -> None:
     """Open Chrome, run the flow, and close when finished."""
     with sync_playwright() as p:
@@ -166,6 +170,7 @@ def open_profile_until_exit(
             root=root,
             headless=headless,
             start_url=start_url,
-            diff_checkouts=diff_checkouts,
             months_ahead=months_ahead,
+            from_month=from_month,
+            calendar_year=calendar_year,
         )
