@@ -445,7 +445,9 @@ def clone_template_sheet(wb: openpyxl.Workbook, year: int) -> Worksheet:
 def build_cleaning_sheet(
     bookings_path: Path = DEFAULT_BOOKINGS,
     workbook_path: Path = DEFAULT_WORKBOOK,
-) -> tuple[int, Path]:
+    *,
+    write_html: bool = True,
+) -> tuple[int, Path, Path | None]:
     data = json.loads(bookings_path.read_text(encoding="utf-8"))
     year = year_from_bookings(data)
 
@@ -458,7 +460,15 @@ def build_cleaning_sheet(
     smooth_cross_month_stay_borders(ws, year, bookings)
     apply_stay_boundary_borders(ws, year, bookings)
     wb.save(workbook_path)
-    return year, workbook_path
+
+    html_path: Path | None = None
+    if write_html:
+        from cleanings.html_export import write_cleaning_html
+
+        html_path = workbook_path.parent / f"cleanings-{year}.html"
+        write_cleaning_html(year=year, bookings=bookings, output_path=html_path)
+
+    return year, workbook_path, html_path
 
 
 def main() -> None:
@@ -491,6 +501,11 @@ def main() -> None:
         default=DEFAULT_WORKBOOK,
         help=f"Path to cleanings-map.xlsx (default: {DEFAULT_WORKBOOK.relative_to(PROJECT_ROOT)})",
     )
+    parser.add_argument(
+        "--no-html",
+        action="store_true",
+        help="Skip writing cleanings/templates/cleanings-{year}.html.",
+    )
     args = parser.parse_args()
 
     maybe_run_fetch(args, calendar_year=None if args.no_fetch else args.year)
@@ -500,8 +515,14 @@ def main() -> None:
             f"Missing {args.bookings}. Run without --no-fetch or run ./fetch.sh."
         )
 
-    year, workbook_path = build_cleaning_sheet(args.bookings, args.workbook)
+    year, workbook_path, html_path = build_cleaning_sheet(
+        args.bookings,
+        args.workbook,
+        write_html=not args.no_html,
+    )
     print(f"Updated {workbook_path} with sheet '{year}'")
+    if html_path is not None:
+        print(f"Wrote {html_path}")
 
 
 if __name__ == "__main__":

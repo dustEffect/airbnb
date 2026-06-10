@@ -8,13 +8,13 @@ Personal automation for an Airbnb multicalendar: fetch reservations, format chec
 |--------|---------|
 | `./fetch.sh` | Log into Airbnb and write `shared/bookings.json` |
 | `./checkouts.sh` | Fetch (optional) and write `checkouts/checkouts.txt` |
-| `./cleanings.sh` | Fetch (optional) and update `cleanings/templates/cleanings-map.xlsx` |
+| `./cleanings.sh` | Fetch (optional), update `cleanings/templates/cleanings-map.xlsx`, and write `cleanings/templates/cleanings-{year}.html` |
 
 All pipelines share the same bookings file: `shared/bookings.json`.
 
 ```
 fetch ──► shared/bookings.json ──► checkouts/checkouts.txt
-                              └──► cleanings calendar sheet
+                              └──► cleanings calendar (xlsx + html)
 ```
 
 ## Setup
@@ -59,9 +59,10 @@ cp credentials.local.env.example credentials.local.env
 ./cleanings.sh                      # fetch full calendar year + update workbook
 ./cleanings.sh --no-fetch           # reuse existing shared/bookings.json
 ./cleanings.sh --year 2026 --no-fetch
+./cleanings.sh --no-html --no-fetch   # xlsx only, skip HTML export
 ```
 
-The Excel template lives at `cleanings/templates/cleanings-map.xlsx`. Each run clones the `template` sheet into a year-named sheet (e.g. `2026`).
+The Excel template lives at `cleanings/templates/cleanings-map.xlsx`. Each run clones the `template` sheet into a year-named sheet (e.g. `2026`) and writes a browser-viewable calendar at `cleanings/templates/cleanings-{year}.html` with the same five listings and stay windows.
 
 ### Console entry points
 
@@ -100,5 +101,6 @@ shared/          Paths and listing label mapping
 
 - `shared/bookings.json`
 - `checkouts/checkouts.txt`
+- `cleanings/templates/cleanings-*.html`
 - `profiles/` (Chrome user data)
 - `credentials.local.env`

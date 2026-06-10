@@ -19,4 +19,5 @@ profiles/
 shared/bookings.json
 checkouts/checkouts.txt
 cleanings/cleanings.txt
+cleanings/templates/cleanings-*.html
 network_capture/
