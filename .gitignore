@@ -12,4 +12,5 @@ credentials.local.env
 profiles/
 shared/bookings.json
 checkouts/checkouts.txt
+cleanings/cleanings.txt
 network_capture/
