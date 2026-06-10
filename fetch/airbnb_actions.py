@@ -7,7 +7,7 @@ from pathlib import Path
 
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError
 
-from env_loader import get_airbnb_credentials, load_credentials_env
+from fetch.env_loader import get_airbnb_credentials, load_credentials_env
 
 
 def accept_airbnb_cookies_if_present(page: Page, *, click_timeout_ms: int = 4500) -> None:

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 
-from run_fetch import add_fetch_arguments, run_fetch_from_namespace
+from fetch.run_fetch import add_fetch_arguments, run_fetch_from_namespace
 
 
 def main() -> None:

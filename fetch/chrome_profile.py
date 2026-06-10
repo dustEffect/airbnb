@@ -11,11 +11,11 @@ from pathlib import Path
 
 from playwright.sync_api import BrowserContext, Playwright, sync_playwright
 
-from airbnb_actions import (
+from fetch.airbnb_actions import (
     accept_airbnb_cookies_if_present,
     login_airbnb_if_needed,
 )
-from bookings_extract import (
+from fetch.bookings_extract import (
     MONTHS_AHEAD,
     extract_bookings_if_multicalendar,
 )

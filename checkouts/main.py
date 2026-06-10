@@ -8,13 +8,13 @@ import json
 import sys
 from pathlib import Path
 
-from checkouts_format import (
+from checkouts.checkouts_format import (
     DIFF_SECTION_HEADER,
     SUMMARY_SECTION_HEADER,
     print_checkouts_diff_from_payload,
     write_checkouts_text,
 )
-from run_fetch import add_fetch_arguments, maybe_run_fetch
+from fetch.run_fetch import add_fetch_arguments, maybe_run_fetch
 from shared.paths import bookings_json_path, project_root
 
 

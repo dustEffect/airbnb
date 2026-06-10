@@ -12,7 +12,7 @@ from playwright.sync_api import APIRequestContext, Page, TimeoutError as Playwri
 
 from shared.paths import bookings_json_path
 
-from airbnb_urls import multicalendar_url
+from fetch.airbnb_urls import multicalendar_url
 MONTHS_AHEAD = 3
 LISTINGS_PAGE_SIZE = 6
 

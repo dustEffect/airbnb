@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 from datetime import date
 
-from airbnb_urls import multicalendar_url
-from bookings_extract import MONTHS_AHEAD, parse_start_month
-from chrome_profile import open_profile_until_exit
+from fetch.airbnb_urls import multicalendar_url
+from fetch.bookings_extract import MONTHS_AHEAD, parse_start_month
+from fetch.chrome_profile import open_profile_until_exit
 
 
 def month_arg(value: str) -> date:

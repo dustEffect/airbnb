@@ -14,14 +14,14 @@ import openpyxl
 from openpyxl.styles import PatternFill, Side
 from openpyxl.worksheet.worksheet import Worksheet
 
-from run_fetch import add_fetch_arguments, maybe_run_fetch
+from fetch.run_fetch import add_fetch_arguments, maybe_run_fetch
 from shared.listing_labels import LISTING_LABELS
 from shared.paths import bookings_json_path, project_root
 
 CLEANINGS_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = project_root()
 DEFAULT_BOOKINGS = bookings_json_path()
-DEFAULT_WORKBOOK = CLEANINGS_DIR / "cleanings-map.xlsx"
+DEFAULT_WORKBOOK = CLEANINGS_DIR / "templates" / "cleanings-map.xlsx"
 TEMPLATE_SHEET = "template"
 FIRST_DAY_COL = 4  # D
 LAST_DAY_COL = 40  # AN — one past AM so long months align with the template weekday row

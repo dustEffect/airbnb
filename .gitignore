@@ -1,4 +1,7 @@
 .venv/
+*.egg-info/
+dist/
+build/
 __pycache__/
 *.py[cod]
 .python-version
@@ -6,6 +9,9 @@ __pycache__/
 
 # IDE
 .cursor/
+
+# Graphify generated knowledge graph
+graphify-out/
 
 # Secrets & browser profile (cookies, local storage)
 credentials.local.env

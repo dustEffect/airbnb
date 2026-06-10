@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from bookings_extract import _date_range, parse_start_month
+from fetch.bookings_extract import _date_range, parse_start_month
 
 
 class TestParseStartMonth:
@@ -21,7 +21,7 @@ class TestDateRange:
             def today(cls) -> date:
                 return cls(2026, 6, 5)
 
-        monkeypatch.setattr("bookings_extract.date", FixedDate)
+        monkeypatch.setattr("fetch.bookings_extract.date", FixedDate)
         start, end = _date_range(2)
         assert start == "2026-06-05"
         assert end == "2026-08-06"

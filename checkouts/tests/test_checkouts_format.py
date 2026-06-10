@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from checkouts_format import (
+from checkouts.checkouts_format import (
     WARNING_ICON,
     _format_checkout_line,
     _listing_label,
@@ -310,7 +310,7 @@ class TestPrintCheckoutsDiff:
             def today(cls) -> date:
                 return cls(2026, 6, 9)
 
-        monkeypatch.setattr("checkouts_format.date", FixedDate)
+        monkeypatch.setattr("checkouts.checkouts_format.date", FixedDate)
         existing = _existing_checkouts_file(
             tmp_path,
             "JUN.\n8 seg. EB\n14 dom. EB\n17 qua. a ? T1\n",
