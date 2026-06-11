@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Reseed the logged-in Linux Chrome profile used by GitHub Actions CI.
 #
-# Full guide: docs/seed-chrome-profile.md
+# Full guide: scripts/seed-chrome-profile.md
 #
 # Typical usage (from repo root):
 #   ./scripts/reseed-chrome-profile.sh
@@ -81,7 +81,7 @@ if [[ "$LOCAL_ONLY" -eq 1 && "$CI_ONLY" -eq 1 ]]; then
 fi
 
 echo "== Reseed Chrome profile for $REPO =="
-echo "Documentation: docs/seed-chrome-profile.md"
+echo "Documentation: scripts/seed-chrome-profile.md"
 echo
 
 if [[ "$CI_ONLY" -eq 0 ]]; then

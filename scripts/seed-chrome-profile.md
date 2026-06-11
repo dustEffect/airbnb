@@ -1,5 +1,7 @@
 # Reseed Chrome profile for GitHub Actions
 
+> Maintainer docs for `scripts/reseed-chrome-profile.sh` and `scripts/seed-chrome-profile-local.sh`. Not published on GitHub Pages (`docs/` is only the calendar site).
+
 GitHub Actions cannot complete Airbnb **2FA** on its own. This project stores a **logged-in Linux Chrome profile** in the Actions cache so `publish-cleaning-calendar.yml` can open the multicalendar headlessly.
 
 Use this guide when:
@@ -190,4 +192,4 @@ Harmless if the seed workflow already populated the cache. Newer workflow versio
 | Reseed Chrome session | `./scripts/reseed-chrome-profile.sh` |
 | Local HTML preview | `./cleanings.sh` |
 
-The scheduled `publish-cleaning-calendar.yml` cron (06:00 UTC daily) uses the cached profile automatically.
+The scheduled `publish-cleaning-calendar.yml` cron (11:00 and 23:00 Lisbon / 10:00 and 22:00 UTC) uses the cached profile automatically.

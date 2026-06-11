@@ -110,7 +110,11 @@ CI needs a **logged-in Linux Chrome profile** in the Actions cache (Airbnb 2FA c
 ./scripts/reseed-chrome-profile.sh
 ```
 
-See **[docs/seed-chrome-profile.md](docs/seed-chrome-profile.md)** for prerequisites (Docker, XQuartz, `gh`), troubleshooting, and security notes.
+See **[scripts/seed-chrome-profile.md](scripts/seed-chrome-profile.md)** for prerequisites (Docker, XQuartz, `gh`), troubleshooting, and security notes.
+
+### Failure alerts
+
+Enable [GitHub notification settings](https://github.com/settings/notifications) → **Actions** → **Send notifications for failed workflows only**.
 
 ## Outputs (gitignored)
 

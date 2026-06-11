@@ -2,7 +2,8 @@ name: Publish cleaning calendar
 
 on:
   schedule:
-    - cron: "0 6 * * *" # daily at 06:00 UTC
+    # 11:00 and 23:00 Europe/Lisbon (WEST, UTC+1) — 10:00 and 22:00 UTC
+    - cron: "0 10,22 * * *"
   workflow_dispatch:
 
 concurrency:

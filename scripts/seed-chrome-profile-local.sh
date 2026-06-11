@@ -4,7 +4,7 @@
 # Usually run via the full orchestrator:
 #   ./scripts/reseed-chrome-profile.sh
 #
-# Full documentation: docs/seed-chrome-profile.md
+# Full documentation: scripts/seed-chrome-profile.md
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
