@@ -1,0 +1,65 @@
+name: Publish cleaning calendar
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # daily at 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    env:
+      AIRBNB_EMAIL: ${{ secrets.AIRBNB_EMAIL }}
+      AIRBNB_PASSWORD: ${{ secrets.AIRBNB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e .
+          .venv/bin/playwright install chrome
+
+      - name: Restore Chrome profile
+        uses: actions/cache@v4
+        with:
+          path: profiles/calendar-airbnb
+          key: airbnb-chrome-profile-v1
+          restore-keys: |
+            airbnb-chrome-profile-
+
+      - name: Fetch bookings and build calendar HTML
+        run: ./cleanings.sh --year "$(date -u +%Y)"
+
+      - name: Publish calendar to GitHub Pages
+        run: |
+          YEAR="$(date -u +%Y)"
+          cp "cleanings/templates/cleanings-${YEAR}.html" docs/index.html
+
+      - name: Commit and push calendar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          if git diff --staged --quiet; then
+            echo "Calendar unchanged; skipping commit."
+          else
+            git commit -m "Update cleaning calendar"
+            git push
+          fi
+
+      - name: Save Chrome profile
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: profiles/calendar-airbnb
+          key: airbnb-chrome-profile-v1
