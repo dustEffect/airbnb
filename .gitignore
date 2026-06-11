@@ -16,6 +16,7 @@ graphify-out/
 # Secrets & browser profile (cookies, local storage)
 credentials.local.env
 profiles/
+chrome-profile.tar.gz
 shared/bookings.json
 checkouts/checkouts.txt
 cleanings/cleanings.txt

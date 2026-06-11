@@ -3,6 +3,10 @@ name: Seed Chrome profile cache
 on:
   workflow_dispatch:
 
+concurrency:
+  group: airbnb-chrome-profile
+  cancel-in-progress: false
+
 jobs:
   seed:
     runs-on: ubuntu-latest

@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 # Create a Linux Chrome profile (login + 2FA in Docker) and upload it for the seed workflow.
+#
+# Usually run via the full orchestrator:
+#   ./scripts/reseed-chrome-profile.sh
+#
+# Full documentation: docs/seed-chrome-profile.md
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,22 +29,85 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
+_xquartz_listens_tcp() {
+  lsof -iTCP:6000 -sTCP:LISTEN >/dev/null 2>&1
+}
+
+_restart_xquartz() {
+  echo "Restarting XQuartz so Docker can connect on TCP port 6000..."
+  osascript -e 'quit app "XQuartz"' 2>/dev/null || true
+  sleep 1
+  open -a XQuartz
+  for _ in {1..40}; do
+    pgrep -qx Xquartz && _xquartz_listens_tcp && return 0
+    sleep 0.5
+  done
+  return 1
+}
+
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  if ! command -v xhost >/dev/null; then
+  XHOST="$(command -v xhost 2>/dev/null || true)"
+  if [[ -z "$XHOST" && -x /opt/X11/bin/xhost ]]; then
+    XHOST=/opt/X11/bin/xhost
+    export PATH="/opt/X11/bin:$PATH"
+  fi
+  if [[ -z "$XHOST" ]]; then
     echo "Install XQuartz first: brew install --cask xquartz" >&2
-    echo "Then log out/in, run: open -a XQuartz && xhost +localhost" >&2
+    echo "Then log out/in and run this script again." >&2
     exit 1
   fi
-  xhost +localhost >/dev/null 2>&1 || true
+  if [[ "$(defaults read org.xquartz.X11 nolisten_tcp 2>/dev/null || echo 1)" == "1" ]]; then
+    echo "Enabling XQuartz TCP connections for Docker..."
+    defaults write org.xquartz.X11 nolisten_tcp -bool false
+    _restart_xquartz || true
+  elif ! _xquartz_listens_tcp; then
+    _restart_xquartz || true
+  elif ! pgrep -qx Xquartz; then
+    echo "Starting XQuartz..."
+    open -a XQuartz
+    for _ in {1..40}; do
+      pgrep -qx Xquartz && _xquartz_listens_tcp && break
+      sleep 0.5
+    done
+  fi
+  if ! pgrep -qx Xquartz; then
+    echo "XQuartz did not start. Open it manually: open -a XQuartz" >&2
+    exit 1
+  fi
+  if ! _xquartz_listens_tcp; then
+    echo "XQuartz is not listening on TCP port 6000." >&2
+    echo "Open XQuartz → Settings → Security → enable \"Allow connections from network clients\"," >&2
+    echo "then quit XQuartz and run this script again." >&2
+    exit 1
+  fi
+  export DISPLAY="${DISPLAY:-:0}"
+  if ! "$XHOST" +localhost 2>/dev/null; then
+    echo "xhost failed (DISPLAY=$DISPLAY). Try in your shell:" >&2
+    echo "  open -a XQuartz && export DISPLAY=:0 && /opt/X11/bin/xhost +localhost" >&2
+    exit 1
+  fi
   DISPLAY_ARG="-e DISPLAY=host.docker.internal:0"
+  echo "Checking Docker → XQuartz display forwarding..."
+  if ! docker run --rm --platform linux/amd64 $DISPLAY_ARG \
+    "$PLAYWRIGHT_IMAGE" \
+    bash -lc 'apt-get update -qq && apt-get install -y -qq x11-utils >/dev/null && xdpyinfo >/dev/null'; then
+    echo "Docker cannot open the Mac display." >&2
+    echo "Try: quit XQuartz, run this script again, or manually:" >&2
+    echo "  /opt/X11/bin/xhost +localhost" >&2
+    exit 1
+  fi
 else
   DISPLAY_ARG="-e DISPLAY=${DISPLAY:-:0}"
 fi
 
 echo "Opening Linux Chrome — complete Airbnb login and 2FA in the browser window."
+if [[ "$(uname -m)" == "arm64" ]]; then
+  echo "(Apple Silicon: using linux/amd64 container — Playwright Chrome is not available on Linux ARM64.)"
+fi
 echo
 
 docker run -it --rm \
+  --platform linux/amd64 \
   $DISPLAY_ARG \
   -v "$ROOT:/work" -w /work \
   "$PLAYWRIGHT_IMAGE" \
@@ -81,7 +149,8 @@ else
 fi
 
 echo
-echo "Done. Next steps:"
-echo "  1. gh workflow run seed-chrome-profile.yml --repo $REPO"
-echo "  2. gh workflow run fetch.yml --repo $REPO"
-echo "  3. Optional cleanup: gh release delete chrome-profile-seed --repo $REPO --yes"
+echo "Local seed uploaded. To finish CI setup:"
+echo "  ./scripts/reseed-chrome-profile.sh --ci-only"
+echo
+echo "Or next time run the full flow in one go:"
+echo "  ./scripts/reseed-chrome-profile.sh"

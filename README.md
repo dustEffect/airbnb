@@ -96,10 +96,27 @@ cleanings/       HTML cleaning calendar
 shared/          Paths and listing label mapping
 ```
 
+## GitHub Actions (cleaning calendar)
+
+The calendar at `docs/index.html` is published by `publish-cleaning-calendar.yml` (daily cron + manual dispatch):
+
+```bash
+gh workflow run publish-cleaning-calendar.yml --repo dustEffect/airbnb
+```
+
+CI needs a **logged-in Linux Chrome profile** in the Actions cache (Airbnb 2FA cannot be done headlessly in Actions). Reseed when the session expires:
+
+```bash
+./scripts/reseed-chrome-profile.sh
+```
+
+See **[docs/seed-chrome-profile.md](docs/seed-chrome-profile.md)** for prerequisites (Docker, XQuartz, `gh`), troubleshooting, and security notes.
+
 ## Outputs (gitignored)
 
 - `shared/bookings.json`
 - `checkouts/checkouts.txt`
 - `cleanings/templates/cleanings-*.html`
 - `profiles/` (Chrome user data)
+- `chrome-profile.tar.gz` (temporary seed archive)
 - `credentials.local.env`

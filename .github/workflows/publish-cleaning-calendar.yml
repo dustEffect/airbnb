@@ -5,6 +5,10 @@ on:
     - cron: "0 6 * * *" # daily at 06:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: airbnb-chrome-profile
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -30,10 +34,11 @@ jobs:
           .venv/bin/playwright install chrome
 
       - name: Restore Chrome profile
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
+        id: chrome-profile
         with:
           path: profiles/calendar-airbnb
-          key: airbnb-chrome-profile-v1
+          key: airbnb-chrome-profile-${{ github.run_id }}
           restore-keys: |
             airbnb-chrome-profile-
 
@@ -62,4 +67,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: profiles/calendar-airbnb
-          key: airbnb-chrome-profile-v1
+          key: airbnb-chrome-profile-${{ github.run_id }}
