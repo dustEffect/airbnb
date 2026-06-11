@@ -1,0 +1,33 @@
+name: Seed Chrome profile cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Chrome profile seed archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download chrome-profile-seed \
+            --repo "${{ github.repository }}" \
+            --pattern 'chrome-profile.tar.gz' \
+            --clobber
+
+      - name: Extract Chrome profile
+        run: |
+          mkdir -p profiles
+          tar xzf chrome-profile.tar.gz -C profiles
+          test -d profiles/calendar-airbnb
+          echo "Profile extracted ($(du -sh profiles/calendar-airbnb | cut -f1))"
+
+      - name: Seed Actions cache
+        uses: actions/cache/save@v4
+        with:
+          path: profiles/calendar-airbnb
+          key: airbnb-chrome-profile-v1
