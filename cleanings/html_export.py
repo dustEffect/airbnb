@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from datetime import date
 from pathlib import Path
 
@@ -21,6 +22,28 @@ from cleanings.portugal_holidays import portugal_national_holidays
 HOLIDAY_ICON = "🇵🇹"
 HOLIDAY_BG = "#D4A017"
 HOLIDAY_BORDER = "#A67C00"
+CUSTOM_STAY_COLOR = "#B2A1C7"
+
+_ICON = (
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"'
+    ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+    ' stroke-linejoin="round" aria-hidden="true">{paths}</svg>'
+)
+_ICON_BED = _ICON.format(
+    paths=(
+        '<path d="M2 4v16"/><path d="M2 8h20a2 2 0 0 1 2 2v10"/>'
+        '<path d="M2 17h20"/><path d="M6 8v9"/>'
+    )
+)
+_ICON_TRASH = _ICON.format(
+    paths=(
+        '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>'
+        '<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'
+    )
+)
+_ICON_X = _ICON.format(paths='<path d="M18 6 6 18"/><path d="m6 6 12 12"/>')
+_ICON_CHECK = _ICON.format(paths='<path d="M20 6 9 17l-5-5"/>')
+_ICON_PLUS = _ICON.format(paths='<path d="M12 5v14"/><path d="M5 12h14"/>')
 
 _CSS = """
 :root {
@@ -101,6 +124,7 @@ main {
   border-radius: 8px;
   margin-bottom: 1.25rem;
   overflow: hidden;
+  scroll-margin-top: 3.5rem;
 }
 .month-card h2 {
   margin: 0;
@@ -170,8 +194,8 @@ main {
   font-size: .75rem;
   background: #f9fafb;
   border-color: transparent;
-  justify-content: flex-end;
-  padding-right: .35rem;
+  justify-content: center;
+  padding: 0;
   position: sticky;
   left: 0;
   z-index: 2;
@@ -217,11 +241,22 @@ main {
   border-radius: 10px;
   padding: 1.25rem;
   width: min(24rem, 100%);
+  min-width: min(100%, 13.5rem);
   box-shadow: 0 8px 30px rgba(0,0,0,.18);
 }
-.comment-dialog h3 { margin: 0 0 .35rem; font-size: 1rem; }
-.comment-dialog .meta {
-  margin: 0 0 .75rem;
+.comment-dialog-header {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+}
+.comment-dialog-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.comment-dialog-header .meta {
+  margin: 0;
   font-size: .8rem;
   color: var(--muted);
 }
@@ -236,24 +271,118 @@ main {
 }
 .comment-actions {
   display: flex;
+  flex-wrap: nowrap;
   gap: .5rem;
   justify-content: flex-end;
+  align-items: center;
   margin-top: .75rem;
 }
 .comment-actions button {
+  flex: 0 0 auto;
   font: inherit;
-  padding: .4rem .85rem;
-  border-radius: 6px;
+  padding: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: #f9fafb;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
+.comment-actions button svg { display: block; }
 .comment-actions button.primary {
   background: #2563eb;
   border-color: #2563eb;
   color: #fff;
 }
 .comment-actions button.danger { color: #b91c1c; }
+.comment-actions button[hidden] { display: none !important; }
+.comment-peek {
+  position: fixed;
+  z-index: 110;
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 2rem));
+  padding: .45rem .6rem;
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  pointer-events: none;
+  font-size: .85rem;
+  line-height: 1.35;
+}
+.comment-peek p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.cell.empty-slot {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.cell.empty-slot.slot-selected {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+  background: #dbeafe !important;
+}
+.cell.stay-custom {
+  overflow: visible;
+  text-overflow: clip;
+  background: #B2A1C7 !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.cell.stay-custom-start {
+  justify-content: flex-start;
+  position: relative;
+  z-index: 2;
+}
+.cell.stay-custom-continuation {
+  position: relative;
+  z-index: 1;
+}
+.cell.stay-custom-start .stay-custom-label {
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1.1;
+}
+.custom-stay-add {
+  position: fixed;
+  z-index: 120;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 2px solid #1a1a1a;
+  background: #fff;
+  color: #1a1a1a;
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  touch-action: manipulation;
+}
+.custom-stay-add:hover { background: #f3f4f6; }
+.custom-stay-add[hidden] { display: none !important; }
+#custom-stay-guest {
+  width: 100%;
+  font: inherit;
+  padding: .5rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: .75rem;
+}
 @media (hover: none) {
   .cell.stay-comment:hover { outline: none; }
   .cell.stay-comment:active {
@@ -318,13 +447,9 @@ main {
     min-height: 6.5rem;
     font-size: 1rem;
   }
-  .comment-actions {
-    flex-wrap: wrap;
-  }
   .comment-actions button {
-    flex: 1 1 30%;
-    min-height: 2.75rem;
-    font-size: .95rem;
+    width: 3rem;
+    height: 3rem;
   }
 }
 @media (max-width: 640px) {
@@ -363,6 +488,10 @@ def _storage_key(year: int) -> str:
 
 def _weekday_icons_storage_key(year: int) -> str:
     return f"airbnb-cleanings-weekday-icons-{year}"
+
+
+def _custom_stays_storage_key(year: int) -> str:
+    return f"airbnb-custom-stays-{year}"
 
 
 def weekday_header_id(year: int, month: int, column_index: int) -> str:
@@ -489,15 +618,34 @@ def _render_month(
                     f' role="button" tabindex="0">{label}</div>'
                 )
             else:
-                cls = "cell listing-row"
+                cls = "cell listing-row empty-slot"
                 if col.is_weekend:
                     cls += " weekend-empty"
+                cell_id = stay_cell_id(listing, day_date)
+                weekend_attr = ' data-weekend="true"' if col.is_weekend else ""
                 parts.append(
-                    f'<div class="{cls}" style="grid-row:{row_index};grid-column:{grid_col}"></div>'
+                    f'<div id="{html.escape(cell_id)}"'
+                    f' class="{cls}"'
+                    f' data-listing="{html.escape(listing)}"'
+                    f' data-date="{day_date.strftime("%Y%m%d")}"'
+                    f'{weekend_attr}'
+                    f' style="grid-row:{row_index};grid-column:{grid_col}"></div>'
                 )
 
     parts.extend(["</div>", "</div>", "</section>"])
     return "\n".join(parts)
+
+
+def _initial_month_section_id(year: int) -> str:
+    """Month section id to show first when the page loads."""
+    today = date.today()
+    if year == today.year:
+        month_index = today.month - 1
+    elif year < today.year:
+        month_index = 11
+    else:
+        month_index = 0
+    return MONTHS_PT[month_index].lower()
 
 
 def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
@@ -531,6 +679,9 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
 
     storage_key = _storage_key(year)
     weekday_icons_storage_key = _weekday_icons_storage_key(year)
+    custom_stays_key = _custom_stays_storage_key(year)
+    listing_colors_json = json.dumps(LISTING_COLORS)
+    initial_month_id = _initial_month_section_id(year)
     return f"""<!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -538,12 +689,12 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f4f5f7">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Calendário limpezas {year}</title>
+  <title>Mapa de Estadias {year}</title>
   <style>{_CSS}</style>
 </head>
 <body data-year="{year}">
   <header>
-    <h1>Calendário de limpezas {year}</h1>
+    <h1>Mapa de Estadias {year}</h1>
     <div class="legend">{legend_items}</div>
   </header>
   <nav class="month-nav" aria-label="Meses">{nav_links}</nav>
@@ -552,20 +703,51 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   </main>
   <div class="comment-backdrop" id="comment-backdrop" hidden>
     <div class="comment-dialog" role="dialog" aria-labelledby="comment-title">
-      <h3 id="comment-title">Comentário de limpeza</h3>
-      <p class="meta" id="comment-meta"></p>
+      <div class="comment-dialog-header">
+        <h3 id="comment-title">Nota</h3>
+        <p class="meta" id="comment-meta"></p>
+      </div>
       <textarea id="comment-input" placeholder="Notas para este dia…"></textarea>
       <div class="comment-actions">
-        <button type="button" class="danger" id="comment-delete">Apagar</button>
-        <button type="button" id="comment-cancel">Cancelar</button>
-        <button type="button" class="primary" id="comment-save">Guardar</button>
+        <button type="button" class="danger icon-btn" id="comment-delete-stay" hidden title="Apagar estadia" aria-label="Apagar estadia">{_ICON_BED}</button>
+        <button type="button" class="danger icon-btn" id="comment-delete" title="Apagar nota" aria-label="Apagar nota">{_ICON_TRASH}</button>
+        <button type="button" class="icon-btn" id="comment-cancel" title="Cancelar" aria-label="Cancelar">{_ICON_X}</button>
+        <button type="button" class="primary icon-btn" id="comment-save" title="Guardar" aria-label="Guardar">{_ICON_CHECK}</button>
       </div>
     </div>
+  </div>
+  <div class="comment-backdrop" id="custom-stay-backdrop" hidden>
+    <div class="comment-dialog" role="dialog" aria-labelledby="custom-stay-title">
+      <div class="comment-dialog-header">
+        <h3 id="custom-stay-title">Nova estadia</h3>
+        <p class="meta" id="custom-stay-meta"></p>
+      </div>
+      <input id="custom-stay-guest" type="text" placeholder="Hóspedes (opcional, ex: 2a)">
+      <div class="comment-actions">
+        <button type="button" class="icon-btn" id="custom-stay-cancel" title="Cancelar" aria-label="Cancelar">{_ICON_X}</button>
+        <button type="button" class="primary icon-btn" id="custom-stay-create" title="Criar estadia" aria-label="Criar estadia">{_ICON_PLUS}</button>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="custom-stay-add" id="custom-stay-add" hidden aria-label="Criar estadia">+</button>
+  <div class="comment-peek" id="comment-peek" hidden role="tooltip">
+    <p id="comment-peek-text"></p>
   </div>
   <script>
 (function () {{
   const STORAGE_KEY = {storage_key!r};
+  const CUSTOM_STAYS_KEY = {custom_stays_key!r};
+  const LISTING_COLORS = {listing_colors_json};
+  const CUSTOM_STAY_COLOR = {CUSTOM_STAY_COLOR!r};
   let activeCellId = null;
+  let longPressTriggered = false;
+  let selectionState = null;
+  let selectionAnchor = null;
+  let isDragSelecting = false;
+  let isTouchSelecting = false;
+  let suppressSelectionClick = false;
+  let dragAnchorDate = null;
+  let dragListing = null;
 
   function loadComments() {{
     try {{
@@ -577,6 +759,339 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
 
   function saveComments(comments) {{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(comments));
+  }}
+
+  function loadCustomStays() {{
+    try {{
+      return JSON.parse(localStorage.getItem(CUSTOM_STAYS_KEY) || "[]");
+    }} catch (_err) {{
+      return [];
+    }}
+  }}
+
+  function saveCustomStays(stays) {{
+    localStorage.setItem(CUSTOM_STAYS_KEY, JSON.stringify(stays));
+  }}
+
+  function formatIso(dateValue) {{
+    return dateValue.slice(0, 4) + "-" + dateValue.slice(4, 6) + "-" + dateValue.slice(6, 8);
+  }}
+
+  function compareDates(a, b) {{
+    return a.localeCompare(b);
+  }}
+
+  function addDays(dateValue, days) {{
+    const year = Number(dateValue.slice(0, 4));
+    const month = Number(dateValue.slice(4, 6)) - 1;
+    const day = Number(dateValue.slice(6, 8));
+    const dt = new Date(year, month, day);
+    dt.setDate(dt.getDate() + days);
+    return (
+      String(dt.getFullYear()) +
+      String(dt.getMonth() + 1).padStart(2, "0") +
+      String(dt.getDate()).padStart(2, "0")
+    );
+  }}
+
+  function emptySlotSelector(listing, dateValue) {{
+    return (
+      '.empty-slot[data-listing="' + listing + '"][data-date="' + dateValue + '"]'
+    );
+  }}
+
+  function getEmptySlot(listing, dateValue) {{
+    return document.querySelector(emptySlotSelector(listing, dateValue));
+  }}
+
+  function collectContinuousEmptyCells(listing, startDate, endDate) {{
+    const start = compareDates(startDate, endDate) <= 0 ? startDate : endDate;
+    const end = compareDates(startDate, endDate) <= 0 ? endDate : startDate;
+    const cells = [];
+    let current = start;
+    while (compareDates(current, end) <= 0) {{
+      const cell = getEmptySlot(listing, current);
+      if (!cell) return null;
+      cells.push(cell);
+      current = addDays(current, 1);
+    }}
+    return cells;
+  }}
+
+  function clearSelectionHighlight() {{
+    document.querySelectorAll(".empty-slot.slot-selected").forEach((cell) => {{
+      cell.classList.remove("slot-selected");
+    }});
+  }}
+
+  const customStayAdd = document.getElementById("custom-stay-add");
+
+  function clearSelection() {{
+    clearSelectionHighlight();
+    customStayAdd.hidden = true;
+    selectionState = null;
+    selectionAnchor = null;
+  }}
+
+  function hideAddButton() {{
+    customStayAdd.hidden = true;
+  }}
+
+  function showAddButton() {{
+    customStayAdd.hidden = false;
+  }}
+
+  function positionAddButton(cells) {{
+    const lastCell = cells[cells.length - 1];
+    const rect = lastCell.getBoundingClientRect();
+    showAddButton();
+    const btnW = customStayAdd.offsetWidth;
+    const btnH = customStayAdd.offsetHeight;
+    let left = rect.right + 6;
+    let top = rect.top + rect.height / 2 - btnH / 2;
+    if (left + btnW > window.innerWidth - 8) {{
+      left = rect.left + rect.width / 2 - btnW / 2;
+      top = rect.bottom + 6;
+    }}
+    if (top + btnH > window.innerHeight - 8) {{
+      top = rect.top - btnH - 6;
+    }}
+    left = Math.max(8, Math.min(left, window.innerWidth - btnW - 8));
+    top = Math.max(8, Math.min(top, window.innerHeight - btnH - 8));
+    customStayAdd.style.left = left + "px";
+    customStayAdd.style.top = top + "px";
+  }}
+
+  function setSelection(listing, startDate, endDate) {{
+    clearSelectionHighlight();
+    const cells = collectContinuousEmptyCells(listing, startDate, endDate);
+    if (!cells || cells.length === 0) {{
+      clearSelection();
+      return;
+    }}
+    cells.forEach((cell) => cell.classList.add("slot-selected"));
+    selectionState = {{
+      listing,
+      startDate: cells[0].dataset.date,
+      endDate: cells[cells.length - 1].dataset.date,
+      cells,
+    }};
+    positionAddButton(cells);
+  }}
+
+  function beginPointerSelection(cell) {{
+    dragListing = cell.dataset.listing;
+    dragAnchorDate = cell.dataset.date;
+    selectionAnchor = {{ listing: dragListing, date: dragAnchorDate }};
+    setSelection(dragListing, dragAnchorDate, dragAnchorDate);
+  }}
+
+  function extendPointerSelection(cell) {{
+    if (!cell || cell.dataset.listing !== dragListing) return;
+    setSelection(dragListing, dragAnchorDate, cell.dataset.date);
+  }}
+
+  function endPointerSelection() {{
+    if (isDragSelecting || isTouchSelecting) {{
+      suppressSelectionClick = true;
+      window.setTimeout(() => {{
+        suppressSelectionClick = false;
+      }}, 400);
+    }}
+    isDragSelecting = false;
+    isTouchSelecting = false;
+  }}
+
+  function handleEmptySlotSelection(cell) {{
+    const listing = cell.dataset.listing;
+    const dateValue = cell.dataset.date;
+    if (!selectionAnchor || selectionAnchor.listing !== listing) {{
+      selectionAnchor = {{ listing, date: dateValue }};
+      setSelection(listing, dateValue, dateValue);
+      return;
+    }}
+    if (selectionAnchor.date === dateValue) {{
+      clearSelection();
+      return;
+    }}
+    setSelection(listing, selectionAnchor.date, dateValue);
+  }}
+
+  function initEmptySlotSelection() {{
+    const main = document.querySelector("main");
+    main.addEventListener("click", (event) => {{
+      if (
+        event.target.closest("#custom-stay-add") ||
+        event.target.closest("#custom-stay-backdrop")
+      ) {{
+        return;
+      }}
+      if (suppressSelectionClick) {{
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }}
+      const cell = event.target.closest(".empty-slot");
+      if (!cell) return;
+      event.stopPropagation();
+      handleEmptySlotSelection(cell);
+    }});
+    main.addEventListener("mousedown", (event) => {{
+      const cell = event.target.closest(".empty-slot");
+      if (!cell || event.button !== 0) return;
+      isDragSelecting = true;
+      beginPointerSelection(cell);
+    }});
+    main.addEventListener("mouseover", (event) => {{
+      const cell = event.target.closest(".empty-slot");
+      if (!cell || !isDragSelecting) return;
+      extendPointerSelection(cell);
+    }});
+    main.addEventListener("touchstart", (event) => {{
+      const cell = event.target.closest(".empty-slot");
+      if (!cell) return;
+      isTouchSelecting = true;
+      beginPointerSelection(cell);
+    }}, {{ passive: true }});
+    main.addEventListener("touchmove", (event) => {{
+      if (!isTouchSelecting || event.touches.length === 0) return;
+      const touch = event.touches[0];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      const cell = target && target.closest(".empty-slot");
+      extendPointerSelection(cell);
+    }}, {{ passive: true }});
+    main.addEventListener("touchend", () => {{
+      endPointerSelection();
+    }});
+    main.addEventListener("touchcancel", () => {{
+      endPointerSelection();
+    }});
+    document.addEventListener("mouseup", () => {{
+      endPointerSelection();
+    }});
+    document.addEventListener("click", (event) => {{
+      if (
+        event.target.closest(".empty-slot") ||
+        event.target.closest("#custom-stay-add") ||
+        event.target.closest("#custom-stay-backdrop") ||
+        event.target.closest(".custom-stay-add")
+      ) {{
+        return;
+      }}
+      if (suppressSelectionClick) return;
+      clearSelection();
+    }});
+    document.addEventListener("keydown", (event) => {{
+      if (event.key === "Escape") {{
+        clearSelection();
+        closeCustomStayDialog();
+      }}
+    }});
+  }}
+
+  function stayTitle(listing, startDate, endDate, guestLabel, isCustom) {{
+    let title = listing + ": " + formatIso(startDate) + " → " + formatIso(endDate);
+    if (isCustom) title += " (personalizada)";
+    if (guestLabel) title += " | Hóspedes: " + guestLabel;
+    return title;
+  }}
+
+  function bindStayCell(cell) {{
+    if (cell.dataset.stayBound === "true") return;
+    cell.dataset.stayBound = "true";
+    bindLongPress(cell);
+    cell.addEventListener("click", (event) => {{
+      if (longPressTriggered) {{
+        event.preventDefault();
+        longPressTriggered = false;
+        return;
+      }}
+      openDialog(cell);
+    }});
+    cell.addEventListener("keydown", (event) => {{
+      if (event.key === "Enter" || event.key === " ") {{
+        event.preventDefault();
+        openDialog(cell);
+      }}
+    }});
+  }}
+
+  function initStayCells() {{
+    document.querySelectorAll(".stay-comment").forEach(bindStayCell);
+  }}
+
+  function paintCustomStay(stay) {{
+    const cells = collectContinuousEmptyCells(stay.listing, stay.startDate, stay.endDate);
+    if (!cells) return;
+    const color = CUSTOM_STAY_COLOR;
+    cells.forEach((cell) => {{
+      const isStart = cell.dataset.date === stay.startDate;
+      cell.classList.remove(
+        "empty-slot",
+        "weekend-empty",
+        "slot-selected",
+        "stay-custom-start",
+        "stay-custom-continuation"
+      );
+      cell.classList.add("stay", "stay-comment", "stay-custom");
+      if (isStart) {{
+        cell.classList.add("stay-custom-start");
+      }} else {{
+        cell.classList.add("stay-custom-continuation");
+      }}
+      cell.style.background = color;
+      cell.dataset.customStay = stay.id;
+      cell.setAttribute("role", "button");
+      cell.tabIndex = 0;
+      cell.replaceChildren();
+      if (isStart && stay.guestLabel) {{
+        const label = document.createElement("span");
+        label.className = "stay-custom-label";
+        label.textContent = stay.guestLabel;
+        cell.appendChild(label);
+      }}
+      cell.title = stayTitle(
+        stay.listing,
+        stay.startDate,
+        stay.endDate,
+        stay.guestLabel || "",
+        true
+      );
+      bindStayCell(cell);
+    }});
+  }}
+
+  function applyCustomStays() {{
+    loadCustomStays().forEach(paintCustomStay);
+  }}
+
+  function restoreEmptyCell(cell) {{
+    const isWeekend = cell.dataset.weekend === "true";
+    cell.className = "cell listing-row empty-slot" + (isWeekend ? " weekend-empty" : "");
+    cell.style.background = "";
+    cell.removeAttribute("role");
+    cell.tabIndex = -1;
+    cell.textContent = "";
+    cell.removeAttribute("title");
+    delete cell.dataset.customStay;
+    delete cell.dataset.stayBound;
+  }}
+
+  function customStayHasComment(customStayId) {{
+    if (!customStayId) return false;
+    const comments = loadComments();
+    return Array.from(
+      document.querySelectorAll('[data-custom-stay="' + customStayId + '"]')
+    ).some((cell) => (comments[cell.id] || "").trim());
+  }}
+
+  function deleteCustomStay(customStayId) {{
+    if (customStayHasComment(customStayId)) return;
+    const stays = loadCustomStays().filter((stay) => stay.id !== customStayId);
+    saveCustomStays(stays);
+    document.querySelectorAll('[data-custom-stay="' + customStayId + '"]').forEach((cell) => {{
+      restoreEmptyCell(cell);
+    }});
   }}
 
   function applySavedComments() {{
@@ -597,14 +1112,94 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   const backdrop = document.getElementById("comment-backdrop");
   const meta = document.getElementById("comment-meta");
   const input = document.getElementById("comment-input");
+  const deleteStayButton = document.getElementById("comment-delete-stay");
+  const commentPeek = document.getElementById("comment-peek");
+  const commentPeekText = document.getElementById("comment-peek-text");
+  const customStayBackdrop = document.getElementById("custom-stay-backdrop");
+  const customStayMeta = document.getElementById("custom-stay-meta");
+  const customStayGuest = document.getElementById("custom-stay-guest");
+  const LONG_PRESS_MS = 500;
+
+  function commentForCell(cellId) {{
+    return (loadComments()[cellId] || "").trim();
+  }}
+
+  function positionCommentPeek(cell) {{
+    commentPeek.hidden = false;
+    commentPeek.style.visibility = "hidden";
+    commentPeek.style.left = "0px";
+    commentPeek.style.top = "0px";
+    const rect = cell.getBoundingClientRect();
+    const peek = commentPeek.getBoundingClientRect();
+    let left = rect.left + rect.width / 2 - peek.width / 2;
+    let top = rect.top - peek.height - 8;
+    if (top < 8) {{
+      top = rect.bottom + 8;
+    }}
+    left = Math.max(8, Math.min(left, window.innerWidth - peek.width - 8));
+    commentPeek.style.left = left + "px";
+    commentPeek.style.top = top + "px";
+    commentPeek.style.visibility = "";
+  }}
+
+  function showCommentPeek(cell) {{
+    const text = commentForCell(cell.id);
+    if (!text) return;
+    commentPeekText.textContent = text;
+    positionCommentPeek(cell);
+  }}
+
+  function hideCommentPeek() {{
+    commentPeek.hidden = true;
+  }}
+
+  function bindLongPress(cell) {{
+    let pressTimer = null;
+
+    const clearPress = () => {{
+      if (pressTimer !== null) {{
+        window.clearTimeout(pressTimer);
+        pressTimer = null;
+      }}
+    }};
+
+    const endPress = () => {{
+      clearPress();
+      hideCommentPeek();
+    }};
+
+    const startPress = () => {{
+      if (!cell.classList.contains("has-comment")) return;
+      clearPress();
+      longPressTriggered = false;
+      pressTimer = window.setTimeout(() => {{
+        pressTimer = null;
+        longPressTriggered = true;
+        showCommentPeek(cell);
+      }}, LONG_PRESS_MS);
+    }};
+
+    cell.addEventListener("touchstart", startPress, {{ passive: true }});
+    cell.addEventListener("touchend", endPress);
+    cell.addEventListener("touchmove", clearPress);
+    cell.addEventListener("touchcancel", endPress);
+    cell.addEventListener("mousedown", (event) => {{
+      if (event.button !== 0) return;
+      startPress();
+    }});
+    cell.addEventListener("mouseup", endPress);
+    cell.addEventListener("mouseleave", endPress);
+  }}
 
   function openDialog(cell) {{
     activeCellId = cell.id;
     const listing = cell.dataset.listing;
     const date = cell.dataset.date;
-    const formatted = date.slice(0, 4) + "-" + date.slice(4, 6) + "-" + date.slice(6, 8);
-    meta.textContent = listing + " · " + formatted;
+    meta.textContent = listing + " · " + formatIso(date);
     input.value = loadComments()[activeCellId] || "";
+    deleteStayButton.hidden =
+      !cell.classList.contains("stay-custom") ||
+      customStayHasComment(cell.dataset.customStay);
     backdrop.hidden = false;
     backdrop.classList.add("open");
     input.focus();
@@ -614,17 +1209,57 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     backdrop.classList.remove("open");
     backdrop.hidden = true;
     activeCellId = null;
+    deleteStayButton.hidden = true;
   }}
 
-  document.querySelectorAll(".stay-comment").forEach((cell) => {{
-    cell.addEventListener("click", () => openDialog(cell));
-    cell.addEventListener("keydown", (event) => {{
-      if (event.key === "Enter" || event.key === " ") {{
-        event.preventDefault();
-        openDialog(cell);
-      }}
-    }});
+  function openCustomStayDialog() {{
+    if (!selectionState) return;
+    customStayMeta.textContent =
+      selectionState.listing +
+      " · " +
+      formatIso(selectionState.startDate) +
+      " → " +
+      formatIso(selectionState.endDate);
+    customStayGuest.value = "";
+    customStayBackdrop.hidden = false;
+    customStayBackdrop.classList.add("open");
+    customStayGuest.focus();
+  }}
+
+  function closeCustomStayDialog() {{
+    customStayBackdrop.classList.remove("open");
+    customStayBackdrop.hidden = true;
+  }}
+
+  function createCustomStay() {{
+    if (!selectionState) return;
+    const stay = {{
+      id: "cs-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      listing: selectionState.listing,
+      startDate: selectionState.startDate,
+      endDate: selectionState.endDate,
+      guestLabel: customStayGuest.value.trim(),
+    }};
+    const stays = loadCustomStays();
+    stays.push(stay);
+    saveCustomStays(stays);
+    paintCustomStay(stay);
+    applySavedComments();
+    closeCustomStayDialog();
+    clearSelection();
+  }}
+
+  customStayAdd.addEventListener("pointerup", (event) => {{
+    event.preventDefault();
+    event.stopPropagation();
+    openCustomStayDialog();
   }});
+
+  document.getElementById("custom-stay-cancel").addEventListener("click", closeCustomStayDialog);
+  customStayBackdrop.addEventListener("click", (event) => {{
+    if (event.target === customStayBackdrop) closeCustomStayDialog();
+  }});
+  document.getElementById("custom-stay-create").addEventListener("click", createCustomStay);
 
   document.getElementById("comment-cancel").addEventListener("click", closeDialog);
   backdrop.addEventListener("click", (event) => {{
@@ -655,6 +1290,18 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     closeDialog();
   }});
 
+  deleteStayButton.addEventListener("click", () => {{
+    if (!activeCellId) return;
+    const cell = document.getElementById(activeCellId);
+    const customStayId = cell && cell.dataset.customStay;
+    if (!customStayId || customStayHasComment(customStayId)) return;
+    deleteCustomStay(customStayId);
+    closeDialog();
+  }});
+
+  applyCustomStays();
+  initStayCells();
+  initEmptySlotSelection();
   applySavedComments();
 
   const WEEKDAY_ICONS_STORAGE_KEY = {weekday_icons_storage_key!r};
@@ -751,6 +1398,16 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     }});
   }});
   applySavedWeekdayIcons();
+
+  function scrollToInitialMonth() {{
+    if (window.location.hash) return;
+    const section = document.getElementById({initial_month_id!r});
+    if (section) {{
+      section.scrollIntoView({{ behavior: "instant", block: "start" }});
+    }}
+  }}
+
+  scrollToInitialMonth();
 }})();
   </script>
 </body>

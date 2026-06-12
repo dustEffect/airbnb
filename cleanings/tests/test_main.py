@@ -52,5 +52,5 @@ class TestBuildCleaningHtml:
         assert html_path == output_dir / "cleanings-2026.html"
         assert html_path.is_file()
         html_text = html_path.read_text(encoding="utf-8")
-        assert "Calendário de limpezas 2026" in html_text
+        assert "Mapa de Estadias 2026" in html_text
         assert "2a" in html_text

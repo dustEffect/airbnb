@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from cleanings.calendar_model import LISTING_ROW_ORDER
 from cleanings.html_export import (
+    _initial_month_section_id,
     render_cleaning_html,
     stay_cell_id,
     weekday_header_id,
@@ -39,7 +41,7 @@ class TestRenderCleaningHtml:
         bookings = [_booking(T2, "2026-03-10", "2026-03-12")]
         html_text = render_cleaning_html(year=2026, bookings=bookings)
 
-        assert "Calendário de limpezas 2026" in html_text
+        assert "Mapa de Estadias 2026" in html_text
         for label in LISTING_ROW_ORDER:
             assert label in html_text
         for month in MONTHS_PT:
@@ -88,6 +90,28 @@ class TestRenderCleaningHtml:
         assert "dashed" in html_text
         assert "Nota:" in html_text
 
+    def test_long_press_shows_transient_comment_peek(self) -> None:
+        html_text = render_cleaning_html(year=2026, bookings=[])
+        assert "comment-peek" in html_text
+        assert "showCommentPeek" in html_text
+        assert "hideCommentPeek" in html_text
+        assert "bindLongPress" in html_text
+        assert 'id="comment-peek-text"' in html_text
+        assert "comment-view-backdrop" not in html_text
+        assert "Comentário de limpeza" not in html_text
+        assert "limpezas" not in html_text.lower()
+
+    def test_empty_slots_support_custom_stay_selection(self) -> None:
+        html_text = render_cleaning_html(year=2026, bookings=[])
+        assert 'class="cell listing-row empty-slot' in html_text
+        assert 'data-listing="T2"' in html_text
+        assert 'id="custom-stay-add"' in html_text
+        assert "createCustomStay" in html_text
+        assert "airbnb-custom-stays-2026" in html_text
+        assert "stay-custom-label" in html_text
+        assert ".cell.stay-custom-start .stay-custom-label" in html_text
+        assert "customStayHasComment" in html_text
+
     def test_tooltips_exclude_confirmation_codes(self) -> None:
         bookings = [_booking(T2, "2026-03-10", "2026-03-12")]
         html_text = render_cleaning_html(year=2026, bookings=bookings)
@@ -133,6 +157,14 @@ class TestRenderCleaningHtml:
         assert "safe-area-inset" in html_text
         assert "Deslize para ver mais dias" in html_text
         assert "position: sticky" in html_text
+
+    def test_scrolls_to_current_month_on_load(self) -> None:
+        year = date.today().year
+        html_text = render_cleaning_html(year=year, bookings=[])
+        initial_month_id = _initial_month_section_id(year)
+        assert f"getElementById({initial_month_id!r})" in html_text
+        assert "scrollToInitialMonth" in html_text
+        assert "scroll-margin-top" in html_text
 
     def test_write_cleaning_html_creates_file(self, tmp_path: Path) -> None:
         out = tmp_path / "cleanings-2026.html"

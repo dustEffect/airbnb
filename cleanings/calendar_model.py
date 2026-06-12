@@ -20,11 +20,11 @@ from cleanings.booking_helpers import (
 LISTING_ROW_ORDER = ("T2", "T1", "T0", "EA", "EB")
 
 LISTING_COLORS: dict[str, str] = {
-    "T2": "#92D050",
-    "T1": "#FABF8F",
-    "T0": "#B8CCE4",
-    "EA": "#C00000",
-    "EB": "#B2A1C7",
+    "T2": "#FABF8F",
+    "T1": "#A9D18E",
+    "T0": "#70AD47",
+    "EA": "#B8CCE4",
+    "EB": "#6FA8DC",
 }
 
 WEEKEND_COLOR = "#EBEDF0"

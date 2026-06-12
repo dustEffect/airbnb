@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from datetime import date
 from pathlib import Path
 
@@ -17,6 +18,7 @@ CLEANINGS_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = project_root()
 DEFAULT_BOOKINGS = bookings_json_path()
 DEFAULT_OUTPUT_DIR = CLEANINGS_DIR / "templates"
+DOCS_INDEX = PROJECT_ROOT / "docs" / "index.html"
 
 
 def build_cleaning_html(
@@ -28,6 +30,9 @@ def build_cleaning_html(
     bookings = data.get("bookings", [])
     html_path = output_dir / f"cleanings-{year}.html"
     write_cleaning_html(year=year, bookings=bookings, output_path=html_path)
+    if output_dir.resolve() == DEFAULT_OUTPUT_DIR.resolve():
+        DOCS_INDEX.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(html_path, DOCS_INDEX)
     return year, html_path
 
 
@@ -74,7 +79,10 @@ def main() -> None:
         )
 
     year, html_path = build_cleaning_html(args.bookings, args.output_dir)
-    print(f"Wrote {html_path} for {year}")
+    if args.output_dir.resolve() == DEFAULT_OUTPUT_DIR.resolve():
+        print(f"Wrote {html_path} and {DOCS_INDEX} for {year}")
+    else:
+        print(f"Wrote {html_path} for {year}")
 
 
 if __name__ == "__main__":
