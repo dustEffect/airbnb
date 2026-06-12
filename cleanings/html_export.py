@@ -187,6 +187,18 @@ main {
   font-weight: 600;
   font-size: .75rem;
 }
+.cell.day-num.is-today::before {
+  content: "";
+  position: absolute;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid #dc2626;
+  border-radius: 50%;
+  pointer-events: none;
+}
 .cell.weekend-empty { background: var(--weekend-bg, #ebedf0); }
 .cell.listing-label {
   width: 2.5rem;
@@ -656,6 +668,7 @@ def _render_month(
     parts.append(
         '<div class="cell listing-label" style="grid-row:2;grid-column:1">dia</div>'
     )
+    today = date.today()
     for slot_index, col in enumerate(columns):
         if col.day is None:
             continue
@@ -664,6 +677,8 @@ def _render_month(
         if col.is_weekend:
             cls += " weekend-empty"
         day_date = date(year, month, col.day)
+        if day_date == today:
+            cls += " is-today"
         cell_id = day_cell_id(day_date)
         parts.append(
             f'<div id="{html.escape(cell_id)}"'
@@ -1566,12 +1581,36 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   }});
   applySavedWeekdayIcons();
 
+  function scrollTodayIntoCenter() {{
+    if (!window.matchMedia("(max-width: 768px)").matches) return;
+    const todayCell = document.querySelector(".cell.day-num.is-today");
+    if (!todayCell) return;
+    const scrollEl = todayCell.closest(".month-scroll");
+    if (!scrollEl) return;
+
+    const containerRect = scrollEl.getBoundingClientRect();
+    const cellRect = todayCell.getBoundingClientRect();
+    const delta =
+      cellRect.left + cellRect.width / 2
+      - (containerRect.left + containerRect.width / 2);
+    const target = scrollEl.scrollLeft + delta;
+    const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+    scrollEl.scrollLeft = Math.max(0, Math.min(target, maxScroll));
+  }}
+
   function scrollToInitialMonth() {{
     if (window.location.hash) return;
     const section = document.getElementById({initial_month_id!r});
     if (section) {{
       section.scrollIntoView({{ behavior: "instant", block: "start" }});
     }}
+  }}
+
+  function runInitialScroll() {{
+    scrollToInitialMonth();
+    requestAnimationFrame(() => {{
+      requestAnimationFrame(scrollTodayIntoCenter);
+    }});
   }}
 
   let customStayLabelLayoutTimer = null;
@@ -1582,10 +1621,11 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     customStayLabelLayoutTimer = window.setTimeout(() => {{
       customStayLabelLayoutTimer = null;
       relayoutAllCustomStayLabels();
+      scrollTodayIntoCenter();
     }}, 120);
   }});
 
-  scrollToInitialMonth();
+  runInitialScroll();
 }})();
   </script>
 </body>

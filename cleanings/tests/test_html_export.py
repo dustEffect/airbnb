@@ -116,6 +116,23 @@ class TestRenderCleaningHtml:
         assert 'setWeekdayIcon(cell, "sponge")' in html_text
         assert "dblclick" in html_text
 
+    def test_marks_today_with_red_circle_on_day_number(self) -> None:
+        today = date.today()
+        html_text = render_cleaning_html(year=today.year, bookings=[])
+        day_id = day_cell_id(today)
+        assert ".cell.day-num.is-today::before" in html_text
+        marker = html_text.split(f'id="{day_id}"', 1)[1].split(">", 1)[0]
+        assert "is-today" in marker
+        other_year = today.year - 1 if today.year > 2000 else today.year + 1
+        other_html = render_cleaning_html(year=other_year, bookings=[])
+        assert ' class="cell day-num day-comment is-today"' not in other_html
+
+    def test_scrolls_today_into_center_on_narrow_viewports(self) -> None:
+        html_text = render_cleaning_html(year=date.today().year, bookings=[])
+        assert "scrollTodayIntoCenter" in html_text
+        assert 'matchMedia("(max-width: 768px)")' in html_text
+        assert "runInitialScroll" in html_text
+
     def test_day_number_cells_support_comments(self) -> None:
         html_text = render_cleaning_html(year=2026, bookings=[])
         assert day_cell_id(date(2026, 3, 15)) == "dia-20260315"
