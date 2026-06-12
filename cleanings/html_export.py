@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import html
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from cleanings.calendar_model import (
@@ -140,6 +140,7 @@ main {
   scroll-padding-left: 2.6rem;
 }
 .grid {
+  position: relative;
   display: grid;
   gap: 2px;
   width: max-content;
@@ -210,20 +211,56 @@ main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.cell.stay { color: #111; border-color: rgba(0,0,0,.15); }
-.cell.stay-comment {
+.cell.stay {
+  color: #111;
+  border-color: rgba(0,0,0,.15);
+  background: var(--stay-color);
+}
+.cell.stay.stay-end,
+.cell.stay-custom.stay-end {
+  --empty-bg: #fff;
+  border-right-color: var(--border);
+  background: linear-gradient(
+    to right,
+    var(--stay-color) 0%,
+    var(--stay-color) 50%,
+    var(--empty-bg) 100%
+  ) !important;
+}
+.cell.stay.stay-end.weekend-end,
+.cell.stay-custom.stay-end.weekend-end {
+  --empty-bg: var(--weekend-bg, #ebedf0);
+}
+.cell.stay-comment,
+.cell.day-comment {
   cursor: pointer;
   position: relative;
   touch-action: manipulation;
 }
-.cell.stay-comment:hover { outline: 2px solid #2563eb; outline-offset: -2px; }
-.cell.stay-comment:focus-visible {
+.cell.stay-comment:hover,
+.cell.day-comment:hover { outline: 2px solid #2563eb; outline-offset: -2px; }
+.cell.stay-comment:focus-visible,
+.cell.day-comment:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: -2px;
 }
-.cell.stay-comment.has-comment {
+.cell.stay-comment.has-comment,
+.cell.day-comment.has-comment {
   border: 2px dashed #1d4ed8 !important;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+}
+.cell.stay-comment.has-comment::after,
+.cell.day-comment.has-comment::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1d4ed8;
+  box-shadow: 0 0 0 1px #fff;
+  pointer-events: none;
 }
 .comment-backdrop {
   display: none;
@@ -330,28 +367,41 @@ main {
   background: #dbeafe !important;
 }
 .cell.stay-custom {
-  overflow: visible;
-  text-overflow: clip;
-  background: #B2A1C7 !important;
+  --stay-color: #B2A1C7;
+  background: var(--stay-color) !important;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
-.cell.stay-custom-start {
-  justify-content: flex-start;
-  position: relative;
-  z-index: 2;
+.stay-custom-label-mask {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+  --grid-gap: 2px;
+  -webkit-mask-image: repeating-linear-gradient(
+    to right,
+    #000 0,
+    #000 var(--day-size),
+    transparent var(--day-size),
+    transparent calc(var(--day-size) + var(--grid-gap))
+  );
+  mask-image: repeating-linear-gradient(
+    to right,
+    #000 0,
+    #000 var(--day-size),
+    transparent var(--day-size),
+    transparent calc(var(--day-size) + var(--grid-gap))
+  );
 }
-.cell.stay-custom-continuation {
-  position: relative;
-  z-index: 1;
-}
-.cell.stay-custom-start .stay-custom-label {
+.stay-custom-label-mask .stay-custom-label {
   position: absolute;
   left: 3px;
   top: 50%;
   transform: translateY(-50%);
   white-space: nowrap;
-  pointer-events: none;
   line-height: 1.1;
+  font-weight: 600;
+  font-size: .65rem;
+  color: #111;
 }
 .custom-stay-add {
   position: fixed;
@@ -384,8 +434,10 @@ main {
   margin-bottom: .75rem;
 }
 @media (hover: none) {
-  .cell.stay-comment:hover { outline: none; }
-  .cell.stay-comment:active {
+  .cell.stay-comment:hover,
+  .cell.day-comment:hover { outline: none; }
+  .cell.stay-comment:active,
+  .cell.day-comment:active {
     outline: 2px solid #2563eb;
     outline-offset: -2px;
   }
@@ -482,6 +534,11 @@ def stay_cell_id(listing: str, day: date) -> str:
     return f"{listing}-{day.strftime('%Y%m%d')}"
 
 
+def day_cell_id(day: date) -> str:
+    """Stable DOM / localStorage key for a calendar day-number cell."""
+    return f"dia-{day.strftime('%Y%m%d')}"
+
+
 def _storage_key(year: int) -> str:
     return f"airbnb-cleanings-comments-{year}"
 
@@ -506,6 +563,25 @@ def _cell_title(cell: OccupiedCell) -> str:
     if cell.guest_label:
         parts.append(f"Hóspedes: {cell.guest_label}")
     return " | ".join(parts)
+
+
+def _stay_identity(stay: OccupiedCell) -> str:
+    if stay.confirmation_code:
+        return stay.confirmation_code
+    return f"{stay.start_date.isoformat()}:{stay.end_date.isoformat()}"
+
+
+def _is_stay_end_cell(
+    stay: OccupiedCell,
+    day_date: date,
+    occupied: dict[date, dict[str, OccupiedCell]],
+    listing: str,
+) -> bool:
+    """True on the last occupied day of a stay."""
+    next_stay = occupied.get(day_date + timedelta(days=1), {}).get(listing)
+    if next_stay is None:
+        return True
+    return _stay_identity(next_stay) != _stay_identity(stay)
 
 
 def _grid_column(slot_index: int) -> int:
@@ -584,11 +660,17 @@ def _render_month(
         if col.day is None:
             continue
         grid_col = _grid_column(slot_index)
-        cls = "cell day-num"
+        cls = "cell day-num day-comment"
         if col.is_weekend:
             cls += " weekend-empty"
+        day_date = date(year, month, col.day)
+        cell_id = day_cell_id(day_date)
         parts.append(
-            f'<div class="{cls}" style="grid-row:2;grid-column:{grid_col}">{col.day}</div>'
+            f'<div id="{html.escape(cell_id)}"'
+            f' class="{cls}"'
+            f' style="grid-row:2;grid-column:{grid_col}"'
+            f' data-date="{day_date.strftime("%Y%m%d")}"'
+            f' role="button" tabindex="0">{col.day}</div>'
         )
 
     for row_index, listing in enumerate(LISTING_ROW_ORDER, start=3):
@@ -608,13 +690,22 @@ def _render_month(
                 title = html.escape(_cell_title(stay), quote=True)
                 label = html.escape(stay.guest_label)
                 cell_id = stay_cell_id(listing, day_date)
+                stay_key = html.escape(_stay_identity(stay), quote=True)
+                stay_classes = ["cell", "listing-row", "stay", "stay-comment"]
+                if _is_stay_end_cell(stay, day_date, occupied, listing):
+                    stay_classes.append("stay-end")
+                    if col.is_weekend:
+                        stay_classes.append("weekend-end")
+                weekend_attr = ' data-weekend="true"' if col.is_weekend else ""
                 parts.append(
                     f'<div id="{html.escape(cell_id)}"'
-                    f' class="cell listing-row stay stay-comment"'
-                    f' style="background:{color};grid-row:{row_index};grid-column:{grid_col}"'
+                    f' class="{" ".join(stay_classes)}"'
+                    f' style="--stay-color:{color};grid-row:{row_index};grid-column:{grid_col}"'
                     f' title="{title}"'
                     f' data-listing="{html.escape(listing)}"'
                     f' data-date="{day_date.strftime("%Y%m%d")}"'
+                    f' data-stay-key="{stay_key}"'
+                    f'{weekend_attr}'
                     f' role="button" tabindex="0">{label}</div>'
                 )
             else:
@@ -658,14 +749,7 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
         f"{html.escape(label)}</span>"
         for label, color in LISTING_COLORS.items()
     )
-    legend_items = (
-        f"{listing_legend}"
-        f'<span class="legend-item">'
-        f'<span class="legend-swatch" style="background:{HOLIDAY_BG};border:2px solid {HOLIDAY_BORDER};'
-        f'font-size:.75rem;line-height:1rem;text-align:center">'
-        f"{HOLIDAY_ICON}</span>"
-        f"Feriado nacional</span>"
-    )
+    legend_items = listing_legend
 
     nav_links = "".join(
         f'<a href="#{html.escape(name.lower())}">{html.escape(name)}</a>'
@@ -1016,8 +1100,80 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     }});
   }}
 
-  function initStayCells() {{
-    document.querySelectorAll(".stay-comment").forEach(bindStayCell);
+  function initCommentCells() {{
+    document.querySelectorAll(".stay-comment, .day-comment").forEach(bindStayCell);
+  }}
+
+  function removeCustomStayLabelMask(customStayId) {{
+    document
+      .querySelectorAll('.stay-custom-label-mask[data-custom-stay="' + customStayId + '"]')
+      .forEach((el) => el.remove());
+  }}
+
+  function layoutCustomStayLabelMask(stay, cells) {{
+    removeCustomStayLabelMask(stay.id);
+    if (!stay.guestLabel || cells.length === 0) return;
+
+    const grid = cells[0].closest(".grid");
+    if (!grid) return;
+
+    const first = cells[0];
+    const last = cells[cells.length - 1];
+    const mask = document.createElement("div");
+    mask.className = "stay-custom-label-mask";
+    mask.dataset.customStay = stay.id;
+    const label = document.createElement("span");
+    label.className = "stay-custom-label";
+    label.textContent = stay.guestLabel;
+    mask.appendChild(label);
+    mask.style.left = first.offsetLeft + "px";
+    mask.style.top = first.offsetTop + "px";
+    mask.style.width = last.offsetLeft + last.offsetWidth - first.offsetLeft + "px";
+    mask.style.height = first.offsetHeight + "px";
+    grid.appendChild(mask);
+  }}
+
+  function nextStayCell(listing, dateValue) {{
+    return document.querySelector(
+      '.stay-comment[data-listing="' + listing + '"][data-date="' + addDays(dateValue, 1) + '"]'
+    );
+  }}
+
+  function stayKeyForCell(cell) {{
+    return cell.dataset.stayKey || cell.dataset.customStay || "";
+  }}
+
+  function markStayEndCell(cell) {{
+    cell.classList.add("stay-end");
+    cell.classList.toggle("weekend-end", cell.dataset.weekend === "true");
+  }}
+
+  function refreshStayEndGradients() {{
+    document.querySelectorAll(".listing-row.stay.stay-comment").forEach((cell) => {{
+      cell.classList.remove("stay-end", "weekend-end");
+    }});
+    document.querySelectorAll(".listing-row.stay.stay-comment").forEach((cell) => {{
+      const next = nextStayCell(cell.dataset.listing, cell.dataset.date);
+      if (!next) {{
+        markStayEndCell(cell);
+        return;
+      }}
+      const currentKey = stayKeyForCell(cell);
+      const nextKey = stayKeyForCell(next);
+      if (currentKey && nextKey && currentKey !== nextKey) {{
+        markStayEndCell(cell);
+      }}
+    }});
+  }}
+
+  function relayoutAllCustomStayLabels() {{
+    document.querySelectorAll(".stay-custom-label-mask").forEach((el) => el.remove());
+    loadCustomStays().forEach((stay) => {{
+      const cells = Array.from(
+        document.querySelectorAll('[data-custom-stay="' + stay.id + '"]')
+      );
+      if (cells.length) layoutCustomStayLabelMask(stay, cells);
+    }});
   }}
 
   function paintCustomStay(stay) {{
@@ -1025,31 +1181,20 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     if (!cells) return;
     const color = CUSTOM_STAY_COLOR;
     cells.forEach((cell) => {{
-      const isStart = cell.dataset.date === stay.startDate;
       cell.classList.remove(
         "empty-slot",
         "weekend-empty",
         "slot-selected",
-        "stay-custom-start",
-        "stay-custom-continuation"
+        "stay-end"
       );
       cell.classList.add("stay", "stay-comment", "stay-custom");
-      if (isStart) {{
-        cell.classList.add("stay-custom-start");
-      }} else {{
-        cell.classList.add("stay-custom-continuation");
-      }}
-      cell.style.background = color;
+      cell.style.removeProperty("background");
+      cell.style.setProperty("--stay-color", color);
       cell.dataset.customStay = stay.id;
+      cell.dataset.stayKey = stay.id;
       cell.setAttribute("role", "button");
       cell.tabIndex = 0;
       cell.replaceChildren();
-      if (isStart && stay.guestLabel) {{
-        const label = document.createElement("span");
-        label.className = "stay-custom-label";
-        label.textContent = stay.guestLabel;
-        cell.appendChild(label);
-      }}
       cell.title = stayTitle(
         stay.listing,
         stay.startDate,
@@ -1059,21 +1204,26 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
       );
       bindStayCell(cell);
     }});
+    layoutCustomStayLabelMask(stay, cells);
   }}
 
   function applyCustomStays() {{
+    document.querySelectorAll(".stay-custom-label-mask").forEach((el) => el.remove());
     loadCustomStays().forEach(paintCustomStay);
+    refreshStayEndGradients();
   }}
 
   function restoreEmptyCell(cell) {{
     const isWeekend = cell.dataset.weekend === "true";
     cell.className = "cell listing-row empty-slot" + (isWeekend ? " weekend-empty" : "");
-    cell.style.background = "";
+    cell.style.removeProperty("background");
+    cell.style.removeProperty("--stay-color");
     cell.removeAttribute("role");
     cell.tabIndex = -1;
     cell.textContent = "";
     cell.removeAttribute("title");
     delete cell.dataset.customStay;
+    delete cell.dataset.stayKey;
     delete cell.dataset.stayBound;
   }}
 
@@ -1089,23 +1239,29 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     if (customStayHasComment(customStayId)) return;
     const stays = loadCustomStays().filter((stay) => stay.id !== customStayId);
     saveCustomStays(stays);
+    removeCustomStayLabelMask(customStayId);
     document.querySelectorAll('[data-custom-stay="' + customStayId + '"]').forEach((cell) => {{
       restoreEmptyCell(cell);
     }});
+    refreshStayEndGradients();
   }}
 
   function applySavedComments() {{
     const comments = loadComments();
-    document.querySelectorAll(".stay-comment").forEach((cell) => {{
+    document.querySelectorAll(".stay-comment, .day-comment").forEach((cell) => {{
       const text = comments[cell.id];
       const hasComment = Boolean(text && text.trim());
       if (!cell.dataset.baseTitle) {{
         cell.dataset.baseTitle = cell.getAttribute("title") || "";
       }}
       cell.classList.toggle("has-comment", hasComment);
-      cell.title = hasComment
-        ? cell.dataset.baseTitle + " | Nota: " + text.trim()
-        : cell.dataset.baseTitle;
+      if (cell.classList.contains("day-comment")) {{
+        cell.title = hasComment ? "Nota: " + text.trim() : "";
+      }} else {{
+        cell.title = hasComment
+          ? cell.dataset.baseTitle + " | Nota: " + text.trim()
+          : cell.dataset.baseTitle;
+      }}
     }});
   }}
 
@@ -1195,7 +1351,9 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     activeCellId = cell.id;
     const listing = cell.dataset.listing;
     const date = cell.dataset.date;
-    meta.textContent = listing + " · " + formatIso(date);
+    meta.textContent = cell.classList.contains("day-comment")
+      ? formatIso(date)
+      : listing + " · " + formatIso(date);
     input.value = loadComments()[activeCellId] || "";
     deleteStayButton.hidden =
       !cell.classList.contains("stay-custom") ||
@@ -1300,7 +1458,7 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   }});
 
   applyCustomStays();
-  initStayCells();
+  initCommentCells();
   initEmptySlotSelection();
   applySavedComments();
 
@@ -1406,6 +1564,17 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
       section.scrollIntoView({{ behavior: "instant", block: "start" }});
     }}
   }}
+
+  let customStayLabelLayoutTimer = null;
+  window.addEventListener("resize", () => {{
+    if (customStayLabelLayoutTimer !== null) {{
+      window.clearTimeout(customStayLabelLayoutTimer);
+    }}
+    customStayLabelLayoutTimer = window.setTimeout(() => {{
+      customStayLabelLayoutTimer = null;
+      relayoutAllCustomStayLabels();
+    }}, 120);
+  }});
 
   scrollToInitialMonth();
 }})();

@@ -8,6 +8,7 @@ from pathlib import Path
 from cleanings.calendar_model import LISTING_ROW_ORDER
 from cleanings.html_export import (
     _initial_month_section_id,
+    day_cell_id,
     render_cleaning_html,
     stay_cell_id,
     weekday_header_id,
@@ -24,9 +25,10 @@ def _booking(
     end_date: str,
     *,
     adults: int = 2,
+    confirmation_code: str = "HMTEST001",
 ) -> dict:
     return {
-        "confirmationCode": "HMTEST001",
+        "confirmationCode": confirmation_code,
         "listingName": listing_name,
         "startDate": start_date,
         "endDate": end_date,
@@ -55,10 +57,40 @@ class TestRenderCleaningHtml:
     def test_all_stay_day_cells_are_clickable(self) -> None:
         bookings = [_booking(T2, "2026-03-10", "2026-03-12")]
         html_text = render_cleaning_html(year=2026, bookings=bookings)
-        assert html_text.count('class="cell listing-row stay stay-comment"') == 3
+        assert html_text.count('class="cell listing-row stay stay-comment"') == 2
+        assert (
+            html_text.count('class="cell listing-row stay stay-comment stay-end"') == 1
+        )
+        assert 'id="T2-20260312" class="cell listing-row stay stay-comment stay-end"' in html_text
         assert 'id="T2-20260310"' in html_text
         assert 'id="T2-20260311"' in html_text
         assert 'id="T2-20260312"' in html_text
+        assert ".cell.stay.stay-end" in html_text
+
+    def test_stay_end_gradient_uses_weekend_empty_color_on_weekends(self) -> None:
+        bookings = [_booking(T2, "2026-03-12", "2026-03-14")]
+        html_text = render_cleaning_html(year=2026, bookings=bookings)
+        assert 'id="T2-20260312" class="cell listing-row stay stay-comment"' in html_text
+        assert (
+            'id="T2-20260314" class="cell listing-row stay stay-comment stay-end weekend-end"'
+            in html_text
+        )
+        assert "var(--empty-bg)" in html_text
+        assert "border-right-color: var(--border)" in html_text
+        assert ".weekend-end" in html_text
+
+    def test_stay_end_gradient_on_last_day_of_each_stay(self) -> None:
+        bookings = [
+            _booking(T2, "2026-03-10", "2026-03-12", confirmation_code="HMTEST001"),
+            _booking(T2, "2026-03-13", "2026-03-15", confirmation_code="HMTEST002"),
+        ]
+        html_text = render_cleaning_html(year=2026, bookings=bookings)
+        assert 'id="T2-20260312" class="cell listing-row stay stay-comment stay-end"' in html_text
+        assert (
+            'id="T2-20260315" class="cell listing-row stay stay-comment stay-end weekend-end"'
+            in html_text
+        )
+        assert "refreshStayEndGradients" in html_text
 
     def test_weekday_header_ids_are_unique_per_year_month_and_column(self) -> None:
         assert weekday_header_id(2026, 1, 7) == "ac-wh-2026-01-c07"
@@ -84,10 +116,19 @@ class TestRenderCleaningHtml:
         assert 'setWeekdayIcon(cell, "sponge")' in html_text
         assert "dblclick" in html_text
 
+    def test_day_number_cells_support_comments(self) -> None:
+        html_text = render_cleaning_html(year=2026, bookings=[])
+        assert day_cell_id(date(2026, 3, 15)) == "dia-20260315"
+        assert 'id="dia-20260315"' in html_text
+        assert 'class="cell day-num day-comment"' in html_text
+        assert "initCommentCells" in html_text
+
     def test_commented_cells_have_clear_marker_styles(self) -> None:
         html_text = render_cleaning_html(year=2026, bookings=[])
         assert ".cell.stay-comment.has-comment" in html_text
+        assert ".cell.day-comment.has-comment" in html_text
         assert "dashed" in html_text
+        assert ".cell.stay-comment.has-comment::after" in html_text
         assert "Nota:" in html_text
 
     def test_long_press_shows_transient_comment_peek(self) -> None:
@@ -108,20 +149,21 @@ class TestRenderCleaningHtml:
         assert 'id="custom-stay-add"' in html_text
         assert "createCustomStay" in html_text
         assert "airbnb-custom-stays-2026" in html_text
-        assert "stay-custom-label" in html_text
-        assert ".cell.stay-custom-start .stay-custom-label" in html_text
+        assert "stay-custom-label-mask" in html_text
+        assert "layoutCustomStayLabelMask" in html_text
+        assert "repeating-linear-gradient" in html_text
         assert "customStayHasComment" in html_text
 
     def test_tooltips_exclude_confirmation_codes(self) -> None:
         bookings = [_booking(T2, "2026-03-10", "2026-03-12")]
         html_text = render_cleaning_html(year=2026, bookings=bookings)
         assert "Reserva:" not in html_text
-        assert "HMTEST001" not in html_text
         assert 'title="T2: 2026-03-10 → 2026-03-12 | Hóspedes: 2a"' in html_text
+        assert 'data-stay-key="HMTEST001"' in html_text
 
     def test_marks_portugal_national_holidays_on_weekday_headers(self) -> None:
         html_text = render_cleaning_html(year=2026, bookings=[])
-        assert "Feriado nacional</span>" in html_text
+        assert "Feriado nacional</span>" not in html_text
         assert 'class="cell header weekday-header has-holiday' in html_text
         assert '<span class="holiday-marker" aria-hidden="true">🇵🇹</span>' in html_text
         january = html_text.split('id="janeiro"')[1].split("</section>")[0]
@@ -149,7 +191,8 @@ class TestRenderCleaningHtml:
         assert html_text.count('class="cell day-num') == 365
         january = html_text.split('id="janeiro"')[1].split("</section>")[0]
         assert january.count('class="cell day-num') == 31
-        assert 'grid-row:2;grid-column:5">1</div>' in january
+        assert 'id="dia-20260101"' in january
+        assert 'grid-row:2;grid-column:5" data-date="20260101" role="button" tabindex="0">1</div>' in january
 
     def test_includes_mobile_friendly_viewport_and_layout(self) -> None:
         html_text = render_cleaning_html(year=2026, bookings=[])
