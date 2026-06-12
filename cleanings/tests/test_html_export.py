@@ -148,6 +148,8 @@ class TestRenderCleaningHtml:
         assert 'data-listing="T2"' in html_text
         assert 'id="custom-stay-add"' in html_text
         assert "createCustomStay" in html_text
+        assert "toggleEmptySlotSelection" in html_text
+        assert "bindEmptySlotLongPress" in html_text
         assert "airbnb-custom-stays-2026" in html_text
         assert "stay-custom-label-mask" in html_text
         assert "layoutCustomStayLabelMask" in html_text

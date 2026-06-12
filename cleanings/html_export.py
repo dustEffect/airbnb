@@ -823,15 +823,10 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   const CUSTOM_STAYS_KEY = {custom_stays_key!r};
   const LISTING_COLORS = {listing_colors_json};
   const CUSTOM_STAY_COLOR = {CUSTOM_STAY_COLOR!r};
+  const LONG_PRESS_MS = 500;
   let activeCellId = null;
   let longPressTriggered = false;
   let selectionState = null;
-  let selectionAnchor = null;
-  let isDragSelecting = false;
-  let isTouchSelecting = false;
-  let suppressSelectionClick = false;
-  let dragAnchorDate = null;
-  let dragListing = null;
 
   function loadComments() {{
     try {{
@@ -914,24 +909,108 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     clearSelectionHighlight();
     customStayAdd.hidden = true;
     selectionState = null;
-    selectionAnchor = null;
   }}
 
-  function hideAddButton() {{
-    customStayAdd.hidden = true;
+  function isContiguousSelection(cells) {{
+    if (cells.length <= 1) return true;
+    const listing = cells[0].dataset.listing;
+    const dates = cells.map((cell) => cell.dataset.date).sort();
+    for (let index = 1; index < dates.length; index += 1) {{
+      if (addDays(dates[index - 1], 1) !== dates[index]) return false;
+    }}
+    return cells.every((cell) => cell.dataset.listing === listing);
   }}
 
-  function showAddButton() {{
-    customStayAdd.hidden = false;
+  function largestContiguousSubset(cells) {{
+    if (cells.length === 0) return [];
+    const sorted = cells
+      .slice()
+      .sort((left, right) => compareDates(left.dataset.date, right.dataset.date));
+    let best = [sorted[0]];
+    let current = [sorted[0]];
+    for (let index = 1; index < sorted.length; index += 1) {{
+      if (addDays(sorted[index - 1].dataset.date, 1) === sorted[index].dataset.date) {{
+        current.push(sorted[index]);
+      }} else {{
+        if (current.length > best.length) best = current;
+        current = [sorted[index]];
+      }}
+    }}
+    return current.length > best.length ? current : best;
+  }}
+
+  function applySelectionCells(cells) {{
+    clearSelectionHighlight();
+    if (!cells.length || !isContiguousSelection(cells)) {{
+      clearSelection();
+      return;
+    }}
+    const sorted = cells
+      .slice()
+      .sort((left, right) => compareDates(left.dataset.date, right.dataset.date));
+    sorted.forEach((cell) => cell.classList.add("slot-selected"));
+    selectionState = {{
+      listing: sorted[0].dataset.listing,
+      startDate: sorted[0].dataset.date,
+      endDate: sorted[sorted.length - 1].dataset.date,
+      cells: sorted,
+    }};
+    positionAddButton(sorted);
+  }}
+
+  function getSelectedEmptySlots() {{
+    return Array.from(document.querySelectorAll(".empty-slot.slot-selected"));
+  }}
+
+  function toggleEmptySlotSelection(cell) {{
+    const listing = cell.dataset.listing;
+    const dateValue = cell.dataset.date;
+
+    if (cell.classList.contains("slot-selected")) {{
+      const remaining = getSelectedEmptySlots().filter((slot) => slot !== cell);
+      if (remaining.length === 0) {{
+        clearSelection();
+        return;
+      }}
+      applySelectionCells(
+        isContiguousSelection(remaining) ? remaining : largestContiguousSubset(remaining)
+      );
+      return;
+    }}
+
+    const selected = getSelectedEmptySlots();
+    if (selected.length === 0) {{
+      applySelectionCells([cell]);
+      return;
+    }}
+    if (selected[0].dataset.listing !== listing) {{
+      applySelectionCells([cell]);
+      return;
+    }}
+
+    const dates = selected.map((slot) => slot.dataset.date).sort();
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+    if (dateValue === addDays(startDate, -1) || dateValue === addDays(endDate, 1)) {{
+      applySelectionCells([...selected, cell]);
+      return;
+    }}
+
+    applySelectionCells([cell]);
   }}
 
   function positionAddButton(cells) {{
     const lastCell = cells[cells.length - 1];
     const rect = lastCell.getBoundingClientRect();
-    showAddButton();
+    customStayAdd.hidden = false;
     const btnW = customStayAdd.offsetWidth;
     const btnH = customStayAdd.offsetHeight;
-    let left = rect.right + 6;
+    const grid = lastCell.closest(".grid");
+    const gridGap = grid
+      ? Number.parseFloat(getComputedStyle(grid).columnGap || getComputedStyle(grid).gap) || 2
+      : 2;
+    const cellClearance = rect.width + gridGap;
+    let left = rect.right + cellClearance;
     let top = rect.top + rect.height / 2 - btnH / 2;
     if (left + btnW > window.innerWidth - 8) {{
       left = rect.left + rect.width / 2 - btnW / 2;
@@ -946,113 +1025,44 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     customStayAdd.style.top = top + "px";
   }}
 
-  function setSelection(listing, startDate, endDate) {{
-    clearSelectionHighlight();
-    const cells = collectContinuousEmptyCells(listing, startDate, endDate);
-    if (!cells || cells.length === 0) {{
-      clearSelection();
-      return;
-    }}
-    cells.forEach((cell) => cell.classList.add("slot-selected"));
-    selectionState = {{
-      listing,
-      startDate: cells[0].dataset.date,
-      endDate: cells[cells.length - 1].dataset.date,
-      cells,
+  function bindEmptySlotLongPress(cell) {{
+    if (cell.dataset.slotBound === "true") return;
+    cell.dataset.slotBound = "true";
+    let pressTimer = null;
+
+    const clearPress = () => {{
+      if (pressTimer !== null) {{
+        window.clearTimeout(pressTimer);
+        pressTimer = null;
+      }}
     }};
-    positionAddButton(cells);
-  }}
 
-  function beginPointerSelection(cell) {{
-    dragListing = cell.dataset.listing;
-    dragAnchorDate = cell.dataset.date;
-    selectionAnchor = {{ listing: dragListing, date: dragAnchorDate }};
-    setSelection(dragListing, dragAnchorDate, dragAnchorDate);
-  }}
+    const startPress = () => {{
+      clearPress();
+      pressTimer = window.setTimeout(() => {{
+        pressTimer = null;
+        toggleEmptySlotSelection(cell);
+      }}, LONG_PRESS_MS);
+    }};
 
-  function extendPointerSelection(cell) {{
-    if (!cell || cell.dataset.listing !== dragListing) return;
-    setSelection(dragListing, dragAnchorDate, cell.dataset.date);
-  }}
+    const endPress = () => {{
+      clearPress();
+    }};
 
-  function endPointerSelection() {{
-    if (isDragSelecting || isTouchSelecting) {{
-      suppressSelectionClick = true;
-      window.setTimeout(() => {{
-        suppressSelectionClick = false;
-      }}, 400);
-    }}
-    isDragSelecting = false;
-    isTouchSelecting = false;
-  }}
-
-  function handleEmptySlotSelection(cell) {{
-    const listing = cell.dataset.listing;
-    const dateValue = cell.dataset.date;
-    if (!selectionAnchor || selectionAnchor.listing !== listing) {{
-      selectionAnchor = {{ listing, date: dateValue }};
-      setSelection(listing, dateValue, dateValue);
-      return;
-    }}
-    if (selectionAnchor.date === dateValue) {{
-      clearSelection();
-      return;
-    }}
-    setSelection(listing, selectionAnchor.date, dateValue);
+    cell.addEventListener("touchstart", startPress, {{ passive: true }});
+    cell.addEventListener("touchend", endPress);
+    cell.addEventListener("touchmove", clearPress);
+    cell.addEventListener("touchcancel", endPress);
+    cell.addEventListener("mousedown", (event) => {{
+      if (event.button !== 0) return;
+      startPress();
+    }});
+    cell.addEventListener("mouseup", endPress);
+    cell.addEventListener("mouseleave", endPress);
   }}
 
   function initEmptySlotSelection() {{
-    const main = document.querySelector("main");
-    main.addEventListener("click", (event) => {{
-      if (
-        event.target.closest("#custom-stay-add") ||
-        event.target.closest("#custom-stay-backdrop")
-      ) {{
-        return;
-      }}
-      if (suppressSelectionClick) {{
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }}
-      const cell = event.target.closest(".empty-slot");
-      if (!cell) return;
-      event.stopPropagation();
-      handleEmptySlotSelection(cell);
-    }});
-    main.addEventListener("mousedown", (event) => {{
-      const cell = event.target.closest(".empty-slot");
-      if (!cell || event.button !== 0) return;
-      isDragSelecting = true;
-      beginPointerSelection(cell);
-    }});
-    main.addEventListener("mouseover", (event) => {{
-      const cell = event.target.closest(".empty-slot");
-      if (!cell || !isDragSelecting) return;
-      extendPointerSelection(cell);
-    }});
-    main.addEventListener("touchstart", (event) => {{
-      const cell = event.target.closest(".empty-slot");
-      if (!cell) return;
-      isTouchSelecting = true;
-      beginPointerSelection(cell);
-    }}, {{ passive: true }});
-    main.addEventListener("touchmove", (event) => {{
-      if (!isTouchSelecting || event.touches.length === 0) return;
-      const touch = event.touches[0];
-      const target = document.elementFromPoint(touch.clientX, touch.clientY);
-      const cell = target && target.closest(".empty-slot");
-      extendPointerSelection(cell);
-    }}, {{ passive: true }});
-    main.addEventListener("touchend", () => {{
-      endPointerSelection();
-    }});
-    main.addEventListener("touchcancel", () => {{
-      endPointerSelection();
-    }});
-    document.addEventListener("mouseup", () => {{
-      endPointerSelection();
-    }});
+    document.querySelectorAll(".empty-slot").forEach(bindEmptySlotLongPress);
     document.addEventListener("click", (event) => {{
       if (
         event.target.closest(".empty-slot") ||
@@ -1062,7 +1072,6 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
       ) {{
         return;
       }}
-      if (suppressSelectionClick) return;
       clearSelection();
     }});
     document.addEventListener("keydown", (event) => {{
@@ -1225,6 +1234,8 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     delete cell.dataset.customStay;
     delete cell.dataset.stayKey;
     delete cell.dataset.stayBound;
+    delete cell.dataset.slotBound;
+    bindEmptySlotLongPress(cell);
   }}
 
   function customStayHasComment(customStayId) {{
@@ -1274,8 +1285,6 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   const customStayBackdrop = document.getElementById("custom-stay-backdrop");
   const customStayMeta = document.getElementById("custom-stay-meta");
   const customStayGuest = document.getElementById("custom-stay-guest");
-  const LONG_PRESS_MS = 500;
-
   function commentForCell(cellId) {{
     return (loadComments()[cellId] || "").trim();
   }}
