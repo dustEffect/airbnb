@@ -272,7 +272,7 @@ class TestPrintCheckoutsDiff:
         )
         output = capsys.readouterr().out.splitlines()
         assert changed is True
-        assert output == ["JUN", "- 8 seg. EB", "+ 8 seg. EA"]
+        assert output == ["JUN", "(caiu) 8 seg. EB", "+ 8 seg. EA"]
 
     def test_ignores_parenthetical_times(self, tmp_path: Path, capsys) -> None:
         existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB (11h)\n")
@@ -322,12 +322,12 @@ class TestPrintCheckoutsDiff:
         )
         output = capsys.readouterr().out.splitlines()
         assert changed is True
-        assert "- 8 seg. EB" not in output
+        assert "(caiu) 8 seg. EB" not in output
         assert "9 ter." not in output
         assert output == [
             "JUN",
-            "- 14 dom. EB",
-            "- 17 qua. a ? T1",
+            "(caiu) 14 dom. EB",
+            "(caiu) 17 qua. a ? T1",
             "+ 14 dom. EA",
             "+ 17 qua. T1",
         ]
@@ -342,7 +342,7 @@ class TestPrintCheckoutsDiff:
         )
         output = capsys.readouterr().out.splitlines()
         assert changed is True
-        assert output == ["JUL", "- 7 ter. EB", "+ 7 ter. a 12 EB"]
+        assert output == ["JUL", "(caiu) 7 ter. EB", "+ 7 ter. a 12 EB"]
 
     def test_diff_from_payload_uses_formatted_output(self, tmp_path: Path, capsys) -> None:
         existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n")
@@ -357,6 +357,6 @@ class TestPrintCheckoutsDiff:
         )
         output = capsys.readouterr().out.splitlines()
         assert changed is True
-        assert "- 8 seg. EB" in output
+        assert "(caiu) 8 seg. EB" in output
         assert "+ 8 seg. EA" in output
         assert "+ 14 dom. EA" in output

@@ -292,7 +292,7 @@ def print_checkouts_diff(
             removed = old_counts[key] - new_counts.get(key, 0)
             added = new_counts[key] - old_counts.get(key, 0)
             for line in old_lines_by_key.get(key, [])[:removed]:
-                removals.append(f"- {line}")
+                removals.append(f"(caiu) {line}")
             for line in new_lines_by_key.get(key, [])[:added]:
                 additions.append(f"+ {line}")
         month_output = removals + additions
