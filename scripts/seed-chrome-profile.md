@@ -192,4 +192,4 @@ Harmless if the seed workflow already populated the cache. Newer workflow versio
 | Reseed Chrome session | `./scripts/reseed-chrome-profile.sh` |
 | Local HTML preview | `./cleanings.sh` |
 
-The scheduled `publish-cleaning-calendar.yml` cron (11:00 and 23:00 Lisbon / 10:00 and 22:00 UTC) uses the cached profile automatically.
+The scheduled `publish-cleaning-calendar.yml` cron (05:00, 11:00, 17:00, 23:00 Lisbon / 04:00, 10:00, 16:00, 22:00 UTC) uses the cached profile automatically.

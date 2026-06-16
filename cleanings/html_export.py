@@ -23,6 +23,7 @@ HOLIDAY_ICON = "🇵🇹"
 HOLIDAY_BG = "#D4A017"
 HOLIDAY_BORDER = "#A67C00"
 CUSTOM_STAY_COLOR = "#B2A1C7"
+AIRBNB_STAY_URL = "https://www.airbnb.pt/hosting/stay/"
 
 _ICON = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"'
@@ -838,6 +839,7 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   const CUSTOM_STAYS_KEY = {custom_stays_key!r};
   const LISTING_COLORS = {listing_colors_json};
   const CUSTOM_STAY_COLOR = {CUSTOM_STAY_COLOR!r};
+  const AIRBNB_STAY_URL = {AIRBNB_STAY_URL!r};
   const LONG_PRESS_MS = 500;
   let activeCellId = null;
   let longPressTriggered = false;
@@ -1333,6 +1335,17 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     commentPeek.hidden = true;
   }}
 
+  function airbnbReservationUrlForCell(cell) {{
+    if (!cell.classList.contains("stay") || cell.classList.contains("stay-custom")) {{
+      return null;
+    }}
+    const stayKey = cell.dataset.stayKey || "";
+    if (!stayKey || stayKey.includes(":")) {{
+      return null;
+    }}
+    return AIRBNB_STAY_URL + encodeURIComponent(stayKey);
+  }}
+
   function bindLongPress(cell) {{
     let pressTimer = null;
 
@@ -1349,12 +1362,18 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     }};
 
     const startPress = () => {{
-      if (!cell.classList.contains("has-comment")) return;
+      const stayUrl = airbnbReservationUrlForCell(cell);
+      const hasComment = cell.classList.contains("has-comment");
+      if (!stayUrl && !hasComment) return;
       clearPress();
       longPressTriggered = false;
       pressTimer = window.setTimeout(() => {{
         pressTimer = null;
         longPressTriggered = true;
+        if (stayUrl) {{
+          window.open(stayUrl, "_blank", "noopener,noreferrer");
+          return;
+        }}
         showCommentPeek(cell);
       }}, LONG_PRESS_MS);
     }};

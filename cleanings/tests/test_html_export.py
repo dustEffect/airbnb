@@ -180,6 +180,16 @@ class TestRenderCleaningHtml:
         assert 'title="T2: 2026-03-10 → 2026-03-12 | Hóspedes: 2a"' in html_text
         assert 'data-stay-key="HMTEST001"' in html_text
 
+    def test_long_press_opens_airbnb_stay_url(self) -> None:
+        html_text = render_cleaning_html(
+            year=2026,
+            bookings=[_booking(T2, "2026-03-10", "2026-03-12", confirmation_code="HMEST3TFBZ")],
+        )
+        assert "airbnbReservationUrlForCell" in html_text
+        assert "https://www.airbnb.pt/hosting/stay/" in html_text
+        assert 'data-stay-key="HMEST3TFBZ"' in html_text
+        assert "window.open(stayUrl" in html_text
+
     def test_marks_portugal_national_holidays_on_weekday_headers(self) -> None:
         html_text = render_cleaning_html(year=2026, bookings=[])
         assert "Feriado nacional</span>" not in html_text

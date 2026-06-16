@@ -98,7 +98,7 @@ shared/          Paths and listing label mapping
 
 ## GitHub Actions (cleaning calendar)
 
-The calendar at `docs/index.html` is published by `publish-cleaning-calendar.yml` (daily cron + manual dispatch):
+The calendar at `docs/index.html` is published by `publish-cleaning-calendar.yml` (four times daily + manual dispatch):
 
 ```bash
 gh workflow run publish-cleaning-calendar.yml --repo dustEffect/airbnb
