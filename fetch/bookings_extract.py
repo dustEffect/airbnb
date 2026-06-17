@@ -15,6 +15,7 @@ from shared.paths import bookings_json_path
 from fetch.airbnb_urls import multicalendar_url
 MONTHS_AHEAD = 3
 LISTINGS_PAGE_SIZE = 6
+ACCEPTED_BOOKING_STATUS = "Aceite"
 
 # Persisted GraphQL operation hashes (from multicalendar network traffic).
 _MULTICAL_LISTINGS_HASH = "a92f15db8f3b41bec137649a08df84ad0129c7d6f45a96606bd0d779811f33f4"
@@ -61,6 +62,11 @@ _AIRBNB_API_KEY = "d306zoyjsyarp7ifhu67rjxn52tv0t20"
 
 def bookings_output_path(root: Path | None = None) -> Path:
     return bookings_json_path(root)
+
+
+def is_accepted_booking_status(status: str | None) -> bool:
+    """Only confirmed host-facing reservations are kept in bookings.json."""
+    return status == ACCEPTED_BOOKING_STATUS
 
 
 def parse_start_month(value: str) -> date:
@@ -255,6 +261,9 @@ def _reservations_from_payload(
             code = reservation.get("confirmationCode")
             if not code or code in reservations:
                 continue
+            status = reservation.get("statusString")
+            if not is_accepted_booking_status(status):
+                continue
 
             guest = reservation.get("guestInfo") or {}
             reservations[code] = {
@@ -272,7 +281,7 @@ def _reservations_from_payload(
                 "numberOfAdults": reservation.get("numberOfAdults"),
                 "numberOfChildren": reservation.get("numberOfChildren"),
                 "numberOfInfants": reservation.get("numberOfInfants"),
-                "status": reservation.get("statusString"),
+                "status": status,
             }
     return reservations
 
@@ -390,10 +399,9 @@ def extract_bookings_if_multicalendar(
         return None
 
     for code, extra in extras.items():
-        booking = reservations.setdefault(
-            code,
-            {"confirmationCode": code},
-        )
+        booking = reservations.get(code)
+        if booking is None:
+            continue
         booking["hostPayoutFormatted"] = extra.get("hostPayoutFormatted")
         booking["hostFacingStatus"] = extra.get("hostFacingStatus")
 

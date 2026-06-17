@@ -2,7 +2,13 @@ from datetime import date
 
 import pytest
 
-from fetch.bookings_extract import _date_range, parse_start_month
+from fetch.bookings_extract import (
+    ACCEPTED_BOOKING_STATUS,
+    _date_range,
+    _reservations_from_payload,
+    is_accepted_booking_status,
+    parse_start_month,
+)
 
 
 class TestParseStartMonth:
@@ -35,3 +41,59 @@ class TestDateRange:
         start, end = _date_range(calendar_year=2026)
         assert start == "2026-01-01"
         assert end == "2026-12-31"
+
+
+class TestReservationsFromPayload:
+    def _payload_with_reservation(self, *, code: str, status: str) -> dict:
+        return {
+            "data": {
+                "patek": {
+                    "getMultiCalendarListingsAndCalendars": {
+                        "hostCalendarsResponse": {
+                            "calendars": [
+                                {
+                                    "listingId": "123",
+                                    "listingAttributes": {
+                                        "listingName": "T1 Renovado c/ metro à porta"
+                                    },
+                                    "days": [
+                                        {
+                                            "unavailabilityReasons": {
+                                                "reservation": {
+                                                    "confirmationCode": code,
+                                                    "statusString": status,
+                                                    "hostingId": "123",
+                                                    "startDate": "2026-06-10",
+                                                    "endDate": "2026-06-12",
+                                                    "numberOfAdults": 2,
+                                                }
+                                            }
+                                        }
+                                    ],
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_keeps_accepted_reservations(self) -> None:
+        reservations = _reservations_from_payload(
+            self._payload_with_reservation(code="HMACEPTED", status=ACCEPTED_BOOKING_STATUS),
+            {},
+        )
+        assert list(reservations) == ["HMACEPTED"]
+        assert reservations["HMACEPTED"]["status"] == ACCEPTED_BOOKING_STATUS
+
+    def test_skips_pending_reservations(self) -> None:
+        reservations = _reservations_from_payload(
+            self._payload_with_reservation(code="HMPENDING", status="Pendente"),
+            {},
+        )
+        assert reservations == {}
+
+    def test_is_accepted_booking_status(self) -> None:
+        assert is_accepted_booking_status(ACCEPTED_BOOKING_STATUS) is True
+        assert is_accepted_booking_status("Pendente") is False
+        assert is_accepted_booking_status(None) is False
