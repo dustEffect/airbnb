@@ -31,25 +31,7 @@ header {
   border-bottom: 1px solid var(--border);
   padding: 1rem 1.25rem 1.25rem;
 }
-header h1 { margin: 0 0 .75rem; font-size: 1.5rem; font-weight: 600; }
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem 1rem;
-}
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  font-size: .875rem;
-  font-weight: 500;
-}
-.legend-swatch {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 3px;
-  border: 1px solid rgba(0,0,0,.12);
-}
+header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
 nav.month-nav {
   position: sticky;
   top: 0;
@@ -436,9 +418,7 @@ main {
     padding: .85rem max(.85rem, env(safe-area-inset-left))
       1rem max(.85rem, env(safe-area-inset-right));
   }
-  header h1 { font-size: 1.2rem; margin-bottom: .55rem; }
-  .legend { gap: .4rem .65rem; }
-  .legend-item { font-size: .8rem; }
+  header h1 { font-size: 1.2rem; }
   main { padding-top: .65rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   .month-card { border-radius: 10px; margin-bottom: 1rem; }
   .month-card h2 {
@@ -504,7 +484,6 @@ main {
 <body data-year="2026">
   <header>
     <h1>Mapa de Estadias 2026</h1>
-    <div class="legend"><span class="legend-item"><span class="legend-swatch" style="background:#FABF8F"></span>T2</span><span class="legend-item"><span class="legend-swatch" style="background:#A9D18E"></span>T1</span><span class="legend-item"><span class="legend-swatch" style="background:#70AD47"></span>T0</span><span class="legend-item"><span class="legend-swatch" style="background:#B8CCE4"></span>EA</span><span class="legend-item"><span class="legend-swatch" style="background:#6FA8DC"></span>EB</span></div>
   </header>
   <nav class="month-nav" aria-label="Meses"><a href="#janeiro">Janeiro</a><a href="#fevereiro">Fevereiro</a><a href="#março">Março</a><a href="#abril">Abril</a><a href="#maio">Maio</a><a href="#junho">Junho</a><a href="#julho">Julho</a><a href="#agosto">Agosto</a><a href="#setembro">Setembro</a><a href="#outubro">Outubro</a><a href="#novembro">Novembro</a><a href="#dezembro">Dezembro</a></nav>
   <main>

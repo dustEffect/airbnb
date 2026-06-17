@@ -71,25 +71,7 @@ header {
   border-bottom: 1px solid var(--border);
   padding: 1rem 1.25rem 1.25rem;
 }
-header h1 { margin: 0 0 .75rem; font-size: 1.5rem; font-weight: 600; }
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem 1rem;
-}
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  font-size: .875rem;
-  font-weight: 500;
-}
-.legend-swatch {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 3px;
-  border: 1px solid rgba(0,0,0,.12);
-}
+header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
 nav.month-nav {
   position: sticky;
   top: 0;
@@ -476,9 +458,7 @@ main {
     padding: .85rem max(.85rem, env(safe-area-inset-left))
       1rem max(.85rem, env(safe-area-inset-right));
   }
-  header h1 { font-size: 1.2rem; margin-bottom: .55rem; }
-  .legend { gap: .4rem .65rem; }
-  .legend-item { font-size: .8rem; }
+  header h1 { font-size: 1.2rem; }
   main { padding-top: .65rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   .month-card { border-radius: 10px; margin-bottom: 1rem; }
   .month-card h2 {
@@ -759,14 +739,6 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     occupied = build_occupied_cells(year, bookings)
     holidays = portugal_national_holidays(year)
 
-    listing_legend = "".join(
-        f'<span class="legend-item">'
-        f'<span class="legend-swatch" style="background:{color}"></span>'
-        f"{html.escape(label)}</span>"
-        for label, color in LISTING_COLORS.items()
-    )
-    legend_items = listing_legend
-
     nav_links = "".join(
         f'<a href="#{html.escape(name.lower())}">{html.escape(name)}</a>'
         for name in MONTHS_PT
@@ -795,7 +767,6 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
 <body data-year="{year}">
   <header>
     <h1>Mapa de Estadias {year}</h1>
-    <div class="legend">{legend_items}</div>
   </header>
   <nav class="month-nav" aria-label="Meses">{nav_links}</nav>
   <main>
