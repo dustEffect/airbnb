@@ -18,14 +18,13 @@ from cleanings.calendar_model import (
 )
 from cleanings.booking_helpers import MONTHS_PT
 from cleanings.portugal_holidays import portugal_national_holidays
+from shared.pwa import pwa_icon_url, pwa_manifest_url, pwa_sw_url
 
 HOLIDAY_ICON = "🇵🇹"
 HOLIDAY_BG = "#D4A017"
 HOLIDAY_BORDER = "#A67C00"
 CUSTOM_STAY_COLOR = "#B2A1C7"
 AIRBNB_STAY_URL = "https://www.airbnb.pt/hosting/stay/"
-PWA_ICON_192 = "/airbnb/icons/icon-192.png"
-PWA_ICON_512 = "/airbnb/icons/icon-512.png"
 
 _ICON = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"'
@@ -765,11 +764,11 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Estadias">
-  <link rel="manifest" href="/airbnb/manifest.webmanifest">
-  <link rel="icon" href="{PWA_ICON_192}" sizes="192x192" type="image/png">
-  <link rel="icon" href="{PWA_ICON_512}" sizes="512x512" type="image/png">
-  <link rel="apple-touch-icon" href="{PWA_ICON_192}" sizes="192x192">
-  <link rel="apple-touch-icon" href="{PWA_ICON_512}" sizes="512x512">
+  <link rel="manifest" href="{pwa_manifest_url()}">
+  <link rel="icon" href="{pwa_icon_url(192)}" sizes="192x192" type="image/png">
+  <link rel="icon" href="{pwa_icon_url(512)}" sizes="512x512" type="image/png">
+  <link rel="apple-touch-icon" href="{pwa_icon_url(192)}" sizes="192x192">
+  <link rel="apple-touch-icon" href="{pwa_icon_url(512)}" sizes="512x512">
   <title>Mapa de Estadias {year}</title>
   <style>{_CSS}</style>
 </head>
@@ -1629,7 +1628,10 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   </script>
   <script>
 if ("serviceWorker" in navigator) {{
-  navigator.serviceWorker.register("/airbnb/sw.js", {{ scope: "/airbnb/" }}).catch(() => {{}});
+  navigator.serviceWorker.register({pwa_sw_url()!r}, {{
+    scope: "/airbnb/",
+    updateViaCache: "none",
+  }}).catch(() => {{}});
 }}
   </script>
 </body>

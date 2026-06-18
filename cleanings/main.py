@@ -13,6 +13,7 @@ from cleanings.booking_helpers import year_from_bookings
 from cleanings.html_export import write_cleaning_html
 from fetch.run_fetch import add_fetch_arguments, maybe_run_fetch
 from shared.paths import bookings_json_path, project_root
+from shared.pwa import write_web_manifest
 
 CLEANINGS_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = project_root()
@@ -33,6 +34,7 @@ def build_cleaning_html(
     if output_dir.resolve() == DEFAULT_OUTPUT_DIR.resolve():
         DOCS_INDEX.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(html_path, DOCS_INDEX)
+        write_web_manifest(DOCS_INDEX.parent / "manifest.webmanifest")
     return year, html_path
 
 
