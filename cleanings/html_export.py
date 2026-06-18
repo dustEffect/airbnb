@@ -18,7 +18,7 @@ from cleanings.calendar_model import (
 )
 from cleanings.booking_helpers import MONTHS_PT
 from cleanings.portugal_holidays import portugal_national_holidays
-from shared.pwa import pwa_icon_url, pwa_manifest_url, pwa_sw_url
+from shared.pwa import pwa_icon_url, pwa_manifest_url, pwa_sw_url, PWA_SPLASH_BACKGROUND
 
 HOLIDAY_ICON = "🇵🇹"
 HOLIDAY_BG = "#D4A017"
@@ -760,7 +760,7 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f5f7">
+  <meta name="theme-color" content="{PWA_SPLASH_BACKGROUND}">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Estadias">
