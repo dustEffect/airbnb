@@ -26,7 +26,6 @@ CUSTOM_STAY_COLOR = "#B2A1C7"
 AIRBNB_STAY_URL = "https://www.airbnb.pt/hosting/stay/"
 PWA_ICON_192 = "/airbnb/icons/icon-192.png"
 PWA_ICON_512 = "/airbnb/icons/icon-512.png"
-PWA_SPLASH_MS = 2000
 
 _ICON = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"'
@@ -522,35 +521,6 @@ main {
   }
   .grid { gap: 3px; }
 }
-.pwa-splash {{
-  display: none;
-}}
-.pwa-splash img {{
-  width: min(40vw, 192px);
-  height: min(40vw, 192px);
-  object-fit: contain;
-}}
-@media (display-mode: standalone) {{
-  html:not(.pwa-splash-done) .pwa-splash {{
-    display: flex;
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    background: #f4f5f7;
-    align-items: center;
-    justify-content: center;
-    padding:
-      env(safe-area-inset-top)
-      env(safe-area-inset-right)
-      env(safe-area-inset-bottom)
-      env(safe-area-inset-left);
-  }}
-  html:not(.pwa-splash-done) body > header,
-  html:not(.pwa-splash-done) body > nav.month-nav,
-  html:not(.pwa-splash-done) body > main {{
-    visibility: hidden;
-  }}
-}}
 """
 
 
@@ -802,23 +772,8 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   <link rel="apple-touch-icon" href="{PWA_ICON_512}" sizes="512x512">
   <title>Mapa de Estadias {year}</title>
   <style>{_CSS}</style>
-  <script>
-(function () {{
-  const standalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.navigator.standalone === true;
-  if (!standalone) {{
-    document.documentElement.classList.add("pwa-splash-done");
-    return;
-  }}
-  window.__pwaSplashUntil = Date.now() + {PWA_SPLASH_MS};
-}})();
-  </script>
 </head>
 <body data-year="{year}">
-  <div id="pwa-splash" class="pwa-splash" aria-hidden="true">
-    <img src="{PWA_ICON_512}" alt="" width="192" height="192">
-  </div>
   <header>
     <h1>Mapa de Estadias {year}</h1>
   </header>
@@ -1669,38 +1624,10 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     }}, 120);
   }});
 
-  function whenSplashDone(fn) {{
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true;
-    if (!standalone) {{
-      fn();
-      return;
-    }}
-    const wait = Math.max(0, (window.__pwaSplashUntil || 0) - Date.now());
-    window.setTimeout(fn, wait);
-  }}
-
-  whenSplashDone(runInitialScroll);
+  runInitialScroll();
 }})();
   </script>
   <script>
-(function () {{
-  const splash = document.getElementById("pwa-splash");
-  if (!splash) return;
-  const standalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.navigator.standalone === true;
-  if (!standalone) {{
-    splash.remove();
-    return;
-  }}
-  const wait = Math.max(0, (window.__pwaSplashUntil || 0) - Date.now());
-  window.setTimeout(() => {{
-    document.documentElement.classList.add("pwa-splash-done");
-    splash.remove();
-  }}, wait);
-}})();
 if ("serviceWorker" in navigator) {{
   navigator.serviceWorker.register("/airbnb/sw.js", {{ scope: "/airbnb/" }}).catch(() => {{}});
 }}
