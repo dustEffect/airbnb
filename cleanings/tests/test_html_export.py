@@ -232,13 +232,13 @@ class TestRenderCleaningHtml:
 
     def test_includes_pwa_manifest_and_service_worker(self) -> None:
         html_text = render_cleaning_html(year=2026, bookings=[])
-        assert 'rel="manifest" href="/airbnb/manifest.webmanifest?v=3"' in html_text
-        assert "navigator.serviceWorker.register('/airbnb/sw.js?v=3'" in html_text
+        assert 'rel="manifest" href="/airbnb/manifest.webmanifest?v=4"' in html_text
+        assert "navigator.serviceWorker.register('/airbnb/sw.js?v=4'" in html_text
         assert "updateViaCache: \"none\"" in html_text
         assert 'scope: "/airbnb/"' in html_text
         assert 'name="apple-mobile-web-app-capable"' in html_text
-        assert 'href="/airbnb/icons/icon-192.png?v=3" sizes="192x192"' in html_text
-        assert 'href="/airbnb/icons/icon-512.png?v=3" sizes="512x512"' in html_text
+        assert 'href="/airbnb/icons/icon-192.png?v=4" sizes="192x192"' in html_text
+        assert 'href="/airbnb/icons/icon-512.png?v=4" sizes="512x512"' in html_text
 
     def test_scrolls_to_current_month_on_load(self) -> None:
         year = date.today().year

@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 # Bump when icons or manifest splash metadata change (cache-busts URLs).
-PWA_ASSET_VERSION = "3"
-PWA_SW_VERSION = "3"
+PWA_ASSET_VERSION = "4"
+PWA_SW_VERSION = "4"
 
 PWA_MANIFEST_PATH = "/airbnb/manifest.webmanifest"
 PWA_SCOPE = "/airbnb/"
@@ -41,13 +41,13 @@ def render_web_manifest() -> str:
                 "src": pwa_icon_url(192),
                 "sizes": "192x192",
                 "type": "image/png",
-                "purpose": "any",
+                "purpose": "maskable",
             },
             {
                 "src": pwa_icon_url(512),
                 "sizes": "512x512",
                 "type": "image/png",
-                "purpose": "any",
+                "purpose": "maskable",
             },
         ],
     }
