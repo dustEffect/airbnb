@@ -11,6 +11,7 @@
 #   --ci-only        Skip local Docker login; run CI workflows (release must exist)
 #   --skip-fetch     Seed cache but do not run publish-cleaning-calendar.yml afterwards
 #   --skip-cleanup   Do not delete the temporary GitHub release (not recommended)
+#   --preflight      Check Docker, gh, credentials, and XQuartz display; then exit
 #   -h, --help       Show this help
 set -euo pipefail
 
@@ -22,9 +23,10 @@ LOCAL_ONLY=0
 CI_ONLY=0
 SKIP_FETCH=0
 SKIP_CLEANUP=0
+PREFLIGHT_ONLY=0
 
 usage() {
-  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
   echo
   echo "Environment:"
   echo "  GITHUB_REPOSITORY   Target repo (default: dustEffect/airbnb)"
@@ -36,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --ci-only) CI_ONLY=1 ;;
     --skip-fetch) SKIP_FETCH=1 ;;
     --skip-cleanup) SKIP_CLEANUP=1 ;;
+    --preflight) PREFLIGHT_ONLY=1 ;;
     -h|--help)
       usage
       exit 0
@@ -80,9 +83,77 @@ if [[ "$LOCAL_ONLY" -eq 1 && "$CI_ONLY" -eq 1 ]]; then
   exit 1
 fi
 
+_preflight() {
+  local failed=0
+  echo "== Preflight =="
+  if [[ ! -f "$ROOT/credentials.local.env" ]]; then
+    echo "✗ Missing credentials.local.env" >&2
+    failed=1
+  else
+    echo "✓ credentials.local.env"
+  fi
+  if ! command -v docker >/dev/null; then
+    echo "✗ Docker not installed" >&2
+    failed=1
+  elif ! docker info >/dev/null 2>&1; then
+    echo "✗ Docker daemon not running — start Docker Desktop" >&2
+    failed=1
+  else
+    echo "✓ Docker"
+  fi
+  if [[ "$PREFLIGHT_ONLY" -eq 1 || "$CI_ONLY" -eq 0 && "$LOCAL_ONLY" -eq 0 ]] || [[ "$LOCAL_ONLY" -eq 1 ]]; then
+    if [[ "$(uname -s)" == "Darwin" ]] && ! { test -x /opt/X11/bin/xhost || command -v xhost >/dev/null; }; then
+      echo "✗ XQuartz not installed (brew install --cask xquartz)" >&2
+      failed=1
+    elif [[ "$(uname -s)" == "Darwin" ]]; then
+      echo "✓ XQuartz (xhost)"
+    fi
+  fi
+  if [[ "$PREFLIGHT_ONLY" -eq 1 || ( "$CI_ONLY" -eq 0 && "$LOCAL_ONLY" -eq 0 ) ]] || [[ "$LOCAL_ONLY" -eq 1 ]]; then
+    if ! [[ -t 0 ]]; then
+      if [[ "$PREFLIGHT_ONLY" -eq 1 ]]; then
+        echo "⚠ Not an interactive terminal (needed for Chrome login during reseed)"
+      else
+        echo "✗ Not an interactive terminal — use Terminal.app or Cursor integrated terminal" >&2
+        failed=1
+      fi
+    else
+      echo "✓ Interactive terminal"
+    fi
+  fi
+  if [[ "$CI_ONLY" -eq 0 ]]; then
+    if ! command -v gh >/dev/null; then
+      echo "✗ GitHub CLI (gh) not installed" >&2
+      failed=1
+    elif ! gh auth status >/dev/null 2>&1; then
+      echo "✗ gh not authenticated — run: gh auth login" >&2
+      failed=1
+    else
+      echo "✓ gh authenticated"
+    fi
+  fi
+  if [[ "$failed" -ne 0 ]]; then
+    echo
+    echo "Fix the issues above, then rerun. See scripts/seed-chrome-profile.md" >&2
+    exit 1
+  fi
+  if [[ "$(uname -s)" == "Darwin" && ( "$PREFLIGHT_ONLY" -eq 1 || "$CI_ONLY" -eq 0 ) ]]; then
+    "$LOCAL_SCRIPT" --preflight
+  fi
+}
+
+if [[ "$PREFLIGHT_ONLY" -eq 1 ]]; then
+  _preflight
+  exit 0
+fi
+
 echo "== Reseed Chrome profile for $REPO =="
 echo "Documentation: scripts/seed-chrome-profile.md"
 echo
+
+if [[ "$CI_ONLY" -eq 0 ]]; then
+  _preflight
+fi
 
 if [[ "$CI_ONLY" -eq 0 ]]; then
   echo "== Step 1/4: Local Linux Chrome login (Docker + 2FA) =="

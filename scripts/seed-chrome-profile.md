@@ -22,10 +22,16 @@ You do **not** need to reseed for every HTML refresh.
 
 ## One-command reseed (recommended)
 
-From the repo root, with Docker Desktop running and `gh` authenticated:
+From the repo root, in an **interactive terminal** (Terminal.app or the Cursor integrated terminal — not a background task), with Docker Desktop running and `gh` authenticated:
 
 ```bash
 ./scripts/reseed-chrome-profile.sh
+```
+
+Optional: verify prerequisites and Docker → XQuartz display forwarding before the full flow (~15 s):
+
+```bash
+./scripts/reseed-chrome-profile.sh --preflight
 ```
 
 That script:
@@ -43,9 +49,28 @@ Options:
 ./scripts/reseed-chrome-profile.sh --ci-only       # CI steps only (release already uploaded)
 ./scripts/reseed-chrome-profile.sh --skip-fetch    # seed cache only, skip calendar publish
 ./scripts/reseed-chrome-profile.sh --skip-cleanup  # keep release (not recommended)
+./scripts/reseed-chrome-profile.sh --preflight     # check Docker, gh, XQuartz display only
 ```
 
 Override repo: `GITHUB_REPOSITORY=owner/repo ./scripts/reseed-chrome-profile.sh`
+
+---
+
+## Before you run
+
+Quick checklist (all must pass):
+
+| Check | How |
+|-------|-----|
+| Docker Desktop running | `docker info` |
+| `gh` logged in | `gh auth status` |
+| Airbnb credentials | `credentials.local.env` exists |
+| XQuartz installed | `test -x /opt/X11/bin/xhost` |
+| Interactive terminal | Run `./scripts/reseed-chrome-profile.sh` directly — do **not** pipe to `tee` or run from a non-TTY automation context for step 1 |
+
+The login step opens a **Linux Chrome window** on your Mac via XQuartz. Complete Airbnb login and 2FA there, then wait for the browser to close on its own.
+
+If XQuartz was just installed or updated, **log out and back in** once before the first reseed.
 
 ---
 
@@ -146,6 +171,43 @@ gh release delete chrome-profile-seed --repo dustEffect/airbnb --yes
 
 ## Troubleshooting
 
+### `the input device is not a TTY`
+
+Docker needs a pseudo-terminal for the login container. Run the reseed in **Terminal.app** or the Cursor **integrated terminal**:
+
+```bash
+cd /path/to/airbnb
+./scripts/reseed-chrome-profile.sh
+```
+
+Do not run step 1 from a background job or a tool that cannot allocate a TTY. If you already uploaded the profile (`--local-only`), finish with:
+
+```bash
+./scripts/reseed-chrome-profile.sh --ci-only
+```
+
+### `Authorization required, but no authorization protocol specified`
+
+XQuartz is running but Docker is not allowed to connect yet. Run this once, then rerun the reseed:
+
+```bash
+open -a XQuartz
+sleep 2
+export DISPLAY=:0
+/opt/X11/bin/xhost +localhost
+/opt/X11/bin/xhost +
+```
+
+Also confirm XQuartz → **Settings → Security** → **Allow connections from network clients** is enabled, then quit and reopen XQuartz if needed.
+
+Verify display forwarding before the full reseed:
+
+```bash
+./scripts/reseed-chrome-profile.sh --preflight
+```
+
+You should see `Docker → XQuartz display: OK`.
+
 ### `xhost: command not found`
 
 XQuartz is installed but `/opt/X11/bin` is not on `PATH` yet. Open a **new terminal** or run:
@@ -156,7 +218,7 @@ export PATH="/opt/X11/bin:$PATH"
 
 ### `unable to open display` / headed browser without XServer
 
-1. Start XQuartz: `open -a XQuartz`
+1. Run the **Authorization required** fix in the section above.
 2. Ensure TCP is enabled (the script sets this automatically):
 
    ```bash
@@ -166,7 +228,8 @@ export PATH="/opt/X11/bin:$PATH"
    Then quit and reopen XQuartz, or rerun the script (it restarts XQuartz for you).
 
 3. In XQuartz → **Settings → Security**, enable **Allow connections from network clients**.
-4. If it still fails after a fresh XQuartz install, **log out and back in** once.
+4. Confirm port 6000 is listening: `lsof -iTCP:6000 -sTCP:LISTEN`
+5. If it still fails after a fresh XQuartz install, **log out and back in** once.
 
 ### `ERROR: not supported on Linux Arm64`
 
@@ -182,6 +245,14 @@ Harmless if the seed workflow already populated the cache. Newer workflow versio
 - Confirm `AIRBNB_EMAIL` / `AIRBNB_PASSWORD` secrets are set on the repo.
 - Reseed again; Airbnb may have invalidated the session during upload.
 
+### `chrome-profile-seed` git tag remains after cleanup
+
+`gh release delete` removes the release assets but may leave the tag. That is harmless. Delete manually if you want:
+
+```bash
+gh api -X DELETE "repos/dustEffect/airbnb/git/refs/tags/chrome-profile-seed"
+```
+
 ---
 
 ## Day-to-day operations
@@ -190,6 +261,7 @@ Harmless if the seed workflow already populated the cache. Newer workflow versio
 |------|---------|
 | Refresh calendar (normal) | `gh workflow run publish-cleaning-calendar.yml --repo dustEffect/airbnb` |
 | Reseed Chrome session | `./scripts/reseed-chrome-profile.sh` |
+| Check reseed prerequisites | `./scripts/reseed-chrome-profile.sh --preflight` |
 | Local HTML preview | `./cleanings.sh` |
 
 The scheduled `publish-cleaning-calendar.yml` cron (05:00, 11:00, 17:00, 23:00 Lisbon / 04:00, 10:00, 16:00, 22:00 UTC) uses the cached profile automatically.

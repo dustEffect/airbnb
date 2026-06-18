@@ -4,6 +4,8 @@
 # Usually run via the full orchestrator:
 #   ./scripts/reseed-chrome-profile.sh
 #
+# Options:
+#   --preflight      Verify Docker, credentials, and XQuartz display; then exit
 # Full documentation: scripts/seed-chrome-profile.md
 set -euo pipefail
 
@@ -11,6 +13,23 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO="${GITHUB_REPOSITORY:-dustEffect/airbnb}"
 ARCHIVE="$ROOT/chrome-profile.tar.gz"
 PLAYWRIGHT_IMAGE="${PLAYWRIGHT_IMAGE:-mcr.microsoft.com/playwright:v1.49.0-jammy}"
+
+PREFLIGHT_ONLY=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --preflight) PREFLIGHT_ONLY=1 ;;
+    -h|--help)
+      echo "Usage: $0 [--preflight]"
+      echo "See scripts/seed-chrome-profile.md"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
 
 cd "$ROOT"
 
@@ -86,19 +105,48 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     echo "  open -a XQuartz && export DISPLAY=:0 && /opt/X11/bin/xhost +localhost" >&2
     exit 1
   fi
+  # Docker on macOS often needs broader X11 access than +localhost alone.
+  "$XHOST" + 2>/dev/null || true
   DISPLAY_ARG="-e DISPLAY=host.docker.internal:0"
-  echo "Checking Docker → XQuartz display forwarding..."
-  if ! docker run --rm --platform linux/amd64 $DISPLAY_ARG \
-    "$PLAYWRIGHT_IMAGE" \
-    bash -lc 'apt-get update -qq && apt-get install -y -qq x11-utils >/dev/null && xdpyinfo >/dev/null'; then
-    echo "Docker cannot open the Mac display." >&2
-    echo "Try: quit XQuartz, run this script again, or manually:" >&2
-    echo "  /opt/X11/bin/xhost +localhost" >&2
-    exit 1
-  fi
 else
   DISPLAY_ARG="-e DISPLAY=${DISPLAY:-:0}"
 fi
+
+_test_docker_display() {
+  echo "Checking Docker → XQuartz display forwarding..."
+  if docker run --rm --platform linux/amd64 $DISPLAY_ARG \
+    "$PLAYWRIGHT_IMAGE" \
+    bash -lc 'apt-get update -qq && apt-get install -y -qq x11-utils >/dev/null && xdpyinfo >/dev/null'; then
+    echo "Docker → XQuartz display: OK"
+    return 0
+  fi
+  echo "Docker cannot open the Mac display." >&2
+  echo "See scripts/seed-chrome-profile.md → Troubleshooting → Authorization required" >&2
+  echo "Quick fix:" >&2
+  echo "  open -a XQuartz && sleep 2 && export DISPLAY=:0 && /opt/X11/bin/xhost +localhost && /opt/X11/bin/xhost +" >&2
+  return 1
+}
+
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  _test_docker_display
+else
+  _test_docker_display || true
+fi
+
+if [[ "$PREFLIGHT_ONLY" -eq 1 ]]; then
+  echo "Preflight passed."
+  exit 0
+fi
+
+if [[ ! -t 0 ]]; then
+  echo "This step must run in an interactive terminal (Chrome login + 2FA)." >&2
+  echo "Open Terminal.app or the Cursor integrated terminal and run:" >&2
+  echo "  ./scripts/reseed-chrome-profile.sh" >&2
+  echo "Or upload only, then: ./scripts/reseed-chrome-profile.sh --ci-only" >&2
+  exit 1
+fi
+
+DOCKER_TTY_FLAGS=(-i -t)
 
 echo "Opening Linux Chrome — complete Airbnb login and 2FA in the browser window."
 if [[ "$(uname -m)" == "arm64" ]]; then
@@ -106,7 +154,7 @@ if [[ "$(uname -m)" == "arm64" ]]; then
 fi
 echo
 
-docker run -it --rm \
+docker run "${DOCKER_TTY_FLAGS[@]}" --rm \
   --platform linux/amd64 \
   $DISPLAY_ARG \
   -v "$ROOT:/work" -w /work \

@@ -761,6 +761,11 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f4f5f7">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Estadias">
+  <link rel="manifest" href="/airbnb/manifest.webmanifest">
+  <link rel="icon" href="/airbnb/icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="/airbnb/icons/icon-192.png">
   <title>Mapa de Estadias {year}</title>
   <style>{_CSS}</style>
 </head>
@@ -1617,6 +1622,11 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
 
   runInitialScroll();
 }})();
+  </script>
+  <script>
+if ("serviceWorker" in navigator) {{
+  navigator.serviceWorker.register("/airbnb/sw.js", {{ scope: "/airbnb/" }}).catch(() => {{}});
+}}
   </script>
 </body>
 </html>

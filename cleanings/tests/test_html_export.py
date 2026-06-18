@@ -230,6 +230,13 @@ class TestRenderCleaningHtml:
         assert "Deslize para ver mais dias" in html_text
         assert "position: sticky" in html_text
 
+    def test_includes_pwa_manifest_and_service_worker(self) -> None:
+        html_text = render_cleaning_html(year=2026, bookings=[])
+        assert 'rel="manifest" href="/airbnb/manifest.webmanifest"' in html_text
+        assert 'navigator.serviceWorker.register("/airbnb/sw.js"' in html_text
+        assert 'scope: "/airbnb/"' in html_text
+        assert 'name="apple-mobile-web-app-capable"' in html_text
+
     def test_scrolls_to_current_month_on_load(self) -> None:
         year = date.today().year
         html_text = render_cleaning_html(year=year, bookings=[])
