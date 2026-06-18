@@ -1034,6 +1034,7 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     }};
 
     const startPress = () => {{
+      if (!cell.classList.contains("empty-slot")) return;
       clearPress();
       pressTimer = window.setTimeout(() => {{
         pressTimer = null;
