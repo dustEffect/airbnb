@@ -236,6 +236,16 @@ class TestRenderCleaningHtml:
         assert 'navigator.serviceWorker.register("/airbnb/sw.js"' in html_text
         assert 'scope: "/airbnb/"' in html_text
         assert 'name="apple-mobile-web-app-capable"' in html_text
+        assert 'href="/airbnb/icons/icon-192.png" sizes="192x192"' in html_text
+        assert 'href="/airbnb/icons/icon-512.png" sizes="512x512"' in html_text
+
+    def test_includes_pwa_splash_screen(self) -> None:
+        html_text = render_cleaning_html(year=2026, bookings=[])
+        assert 'id="pwa-splash"' in html_text
+        assert "pwa-splash-done" in html_text
+        assert "whenSplashDone" in html_text
+        assert "__pwaSplashUntil" in html_text
+        assert "(display-mode: standalone)" in html_text
 
     def test_scrolls_to_current_month_on_load(self) -> None:
         year = date.today().year
