@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 # Bump when icons or manifest splash metadata change (cache-busts URLs).
-PWA_ASSET_VERSION = "5"
-PWA_SW_VERSION = "5"
+PWA_ASSET_VERSION = "6"
+PWA_SW_VERSION = "6"
 
 PWA_MANIFEST_PATH = "/airbnb/manifest.webmanifest"
 PWA_SCOPE = "/airbnb/"
