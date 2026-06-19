@@ -6,12 +6,13 @@ import json
 from pathlib import Path
 
 # Bump when icons or manifest splash metadata change (cache-busts URLs).
-PWA_ASSET_VERSION = "6"
-PWA_SW_VERSION = "6"
+PWA_ASSET_VERSION = "7"
+PWA_SW_VERSION = "7"
 
 PWA_MANIFEST_PATH = "/airbnb/manifest.webmanifest"
 PWA_SCOPE = "/airbnb/"
-# Sampled from icon-512.png background (215, 235, 250).
+# Opaque launcher icons composited on this color (Android renders maskable
+# transparency as black on the native splash).
 PWA_SPLASH_BACKGROUND = "#D7EBFA"
 
 

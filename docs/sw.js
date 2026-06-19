@@ -1,4 +1,4 @@
-// PWA service worker v6 — no HTTP cache for /airbnb/ assets.
+// PWA service worker v7 — no HTTP cache for /airbnb/ assets.
 const SCOPE_PATH = "/airbnb/";
 
 self.addEventListener("install", (event) => {
