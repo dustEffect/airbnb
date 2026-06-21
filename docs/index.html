@@ -1717,7 +1717,7 @@ main {
 <div id="dia-20260617" class="cell day-num day-comment" style="grid-row:2;grid-column:18" data-date="20260617" role="button" tabindex="0">17</div>
 <div id="dia-20260618" class="cell day-num day-comment" style="grid-row:2;grid-column:19" data-date="20260618" role="button" tabindex="0">18</div>
 <div id="dia-20260619" class="cell day-num day-comment" style="grid-row:2;grid-column:20" data-date="20260619" role="button" tabindex="0">19</div>
-<div id="dia-20260620" class="cell day-num day-comment weekend-empty is-today" style="grid-row:2;grid-column:21" data-date="20260620" role="button" tabindex="0">20</div>
+<div id="dia-20260620" class="cell day-num day-comment weekend-empty" style="grid-row:2;grid-column:21" data-date="20260620" role="button" tabindex="0">20</div>
 <div id="dia-20260621" class="cell day-num day-comment weekend-empty" style="grid-row:2;grid-column:22" data-date="20260621" role="button" tabindex="0">21</div>
 <div id="dia-20260622" class="cell day-num day-comment" style="grid-row:2;grid-column:23" data-date="20260622" role="button" tabindex="0">22</div>
 <div id="dia-20260623" class="cell day-num day-comment" style="grid-row:2;grid-column:24" data-date="20260623" role="button" tabindex="0">23</div>
@@ -3336,6 +3336,7 @@ main {
   const LISTING_COLORS = {"T2": "#FABF8F", "T1": "#A9D18E", "T0": "#70AD47", "EA": "#B8CCE4", "EB": "#6FA8DC"};
   const CUSTOM_STAY_COLOR = '#B2A1C7';
   const AIRBNB_STAY_URL = 'https://www.airbnb.pt/hosting/stay/';
+  const MONTH_IDS = ["janeiro", "fevereiro", "mar\u00e7o", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const LONG_PRESS_MS = 500;
   let activeCellId = null;
   let longPressTriggered = false;
@@ -4097,6 +4098,18 @@ main {
   });
   applySavedWeekdayIcons();
 
+  function markToday() {
+    const now = new Date();
+    const y = String(now.getFullYear());
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const todayStr = y + m + d;
+    const cell = document.querySelector('.day-num[data-date="' + todayStr + '"]');
+    if (cell) {
+      cell.classList.add("is-today");
+    }
+  }
+
   function scrollTodayIntoCenter() {
     if (!window.matchMedia("(max-width: 768px)").matches) return;
     const todayCell = document.querySelector(".cell.day-num.is-today");
@@ -4116,7 +4129,18 @@ main {
 
   function scrollToInitialMonth() {
     if (window.location.hash) return;
-    const section = document.getElementById('junho');
+    const pageYear = Number(document.body.dataset.year);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    let monthIndex;
+    if (pageYear === currentYear) {
+      monthIndex = now.getMonth();
+    } else if (pageYear < currentYear) {
+      monthIndex = 11;
+    } else {
+      monthIndex = 0;
+    }
+    const section = document.getElementById(MONTH_IDS[monthIndex]);
     if (section) {
       section.scrollIntoView({ behavior: "instant", block: "start" });
     }
@@ -4141,6 +4165,7 @@ main {
     }, 120);
   });
 
+  markToday();
   runInitialScroll();
 })();
   </script>
