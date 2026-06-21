@@ -650,7 +650,6 @@ def _render_month(
     parts.append(
         '<div class="cell listing-label" style="grid-row:2;grid-column:1">dia</div>'
     )
-    today = date.today()
     for slot_index, col in enumerate(columns):
         if col.day is None:
             continue
@@ -659,8 +658,6 @@ def _render_month(
         if col.is_weekend:
             cls += " weekend-empty"
         day_date = date(year, month, col.day)
-        if day_date == today:
-            cls += " is-today"
         cell_id = day_cell_id(day_date)
         parts.append(
             f'<div id="{html.escape(cell_id)}"'
@@ -754,7 +751,7 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     weekday_icons_storage_key = _weekday_icons_storage_key(year)
     custom_stays_key = _custom_stays_storage_key(year)
     listing_colors_json = json.dumps(LISTING_COLORS)
-    initial_month_id = _initial_month_section_id(year)
+    month_ids_json = json.dumps([m.lower() for m in MONTHS_PT])
     return f"""<!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -819,6 +816,7 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   const LISTING_COLORS = {listing_colors_json};
   const CUSTOM_STAY_COLOR = {CUSTOM_STAY_COLOR!r};
   const AIRBNB_STAY_URL = {AIRBNB_STAY_URL!r};
+  const MONTH_IDS = {month_ids_json};
   const LONG_PRESS_MS = 500;
   let activeCellId = null;
   let longPressTriggered = false;
@@ -1580,6 +1578,18 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
   }});
   applySavedWeekdayIcons();
 
+  function markToday() {{
+    const now = new Date();
+    const y = String(now.getFullYear());
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const todayStr = y + m + d;
+    const cell = document.querySelector('.day-num[data-date="' + todayStr + '"]');
+    if (cell) {{
+      cell.classList.add("is-today");
+    }}
+  }}
+
   function scrollTodayIntoCenter() {{
     if (!window.matchMedia("(max-width: 768px)").matches) return;
     const todayCell = document.querySelector(".cell.day-num.is-today");
@@ -1599,7 +1609,18 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
 
   function scrollToInitialMonth() {{
     if (window.location.hash) return;
-    const section = document.getElementById({initial_month_id!r});
+    const pageYear = Number(document.body.dataset.year);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    let monthIndex;
+    if (pageYear === currentYear) {{
+      monthIndex = now.getMonth();
+    }} else if (pageYear < currentYear) {{
+      monthIndex = 11;
+    }} else {{
+      monthIndex = 0;
+    }}
+    const section = document.getElementById(MONTH_IDS[monthIndex]);
     if (section) {{
       section.scrollIntoView({{ behavior: "instant", block: "start" }});
     }}
@@ -1624,6 +1645,7 @@ def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
     }}, 120);
   }});
 
+  markToday();
   runInitialScroll();
 }})();
   </script>
