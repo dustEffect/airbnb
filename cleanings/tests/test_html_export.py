@@ -7,7 +7,6 @@ from pathlib import Path
 
 from cleanings.calendar_model import LISTING_ROW_ORDER
 from cleanings.html_export import (
-    _initial_month_section_id,
     day_cell_id,
     render_cleaning_html,
     stay_cell_id,
@@ -117,15 +116,10 @@ class TestRenderCleaningHtml:
         assert "dblclick" in html_text
 
     def test_marks_today_with_red_circle_on_day_number(self) -> None:
-        today = date.today()
-        html_text = render_cleaning_html(year=today.year, bookings=[])
-        day_id = day_cell_id(today)
+        html_text = render_cleaning_html(year=2026, bookings=[])
         assert ".cell.day-num.is-today::before" in html_text
-        marker = html_text.split(f'id="{day_id}"', 1)[1].split(">", 1)[0]
-        assert "is-today" in marker
-        other_year = today.year - 1 if today.year > 2000 else today.year + 1
-        other_html = render_cleaning_html(year=other_year, bookings=[])
-        assert ' class="cell day-num day-comment is-today"' not in other_html
+        assert "markToday" in html_text
+        assert ' class="cell day-num day-comment is-today"' not in html_text
 
     def test_scrolls_today_into_center_on_narrow_viewports(self) -> None:
         html_text = render_cleaning_html(year=date.today().year, bookings=[])
@@ -242,10 +236,10 @@ class TestRenderCleaningHtml:
         assert 'name="theme-color" content="#D7EBFA"' in html_text
 
     def test_scrolls_to_current_month_on_load(self) -> None:
-        year = date.today().year
-        html_text = render_cleaning_html(year=year, bookings=[])
-        initial_month_id = _initial_month_section_id(year)
-        assert f"getElementById({initial_month_id!r})" in html_text
+        html_text = render_cleaning_html(year=2026, bookings=[])
+        assert "MONTH_IDS" in html_text
+        assert "now.getMonth()" in html_text
+        assert "getElementById(MONTH_IDS[monthIndex])" in html_text
         assert "scrollToInitialMonth" in html_text
         assert "scroll-margin-top" in html_text
 
