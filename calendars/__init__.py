@@ -1,1 +1,1 @@
-# Cleaning calendar outputs and formatting.
+# Stay calendar HTML export and formatting.

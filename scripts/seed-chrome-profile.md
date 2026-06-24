@@ -2,18 +2,18 @@
 
 > Maintainer docs for `scripts/reseed-chrome-profile.sh` and `scripts/seed-chrome-profile-local.sh`. Not published on GitHub Pages (`docs/` is only the calendar site).
 
-GitHub Actions cannot complete Airbnb **2FA** on its own. This project stores a **logged-in Linux Chrome profile** in the Actions cache so `publish-cleaning-calendar.yml` can open the multicalendar headlessly.
+GitHub Actions cannot complete Airbnb **2FA** on its own. This project stores a **logged-in Linux Chrome profile** in the Actions cache so `publish-calendar.yml` can open the multicalendar headlessly.
 
 Use this guide when:
 
 - Setting up CI for the first time
-- `publish-cleaning-calendar.yml` fails because Airbnb logged out or the session expired
+- `publish-calendar.yml` fails because Airbnb logged out or the session expired
 - You changed your Airbnb password or revoked browser sessions
 
 For normal calendar updates you only need:
 
 ```bash
-gh workflow run publish-cleaning-calendar.yml --repo dustEffect/airbnb
+gh workflow run publish-calendar.yml --repo dustEffect/airbnb
 ```
 
 You do **not** need to reseed for every HTML refresh.
@@ -39,7 +39,7 @@ That script:
 1. Opens Linux Chrome in Docker on your Mac (you complete login + 2FA)
 2. Packages `profiles/calendar-airbnb` and uploads it to a **temporary** GitHub release
 3. Runs the `Seed Chrome profile cache` workflow (copies profile into Actions cache)
-4. Runs `publish-cleaning-calendar.yml` to verify CI can use the profile
+4. Runs `publish-calendar.yml` to verify CI can use the profile
 5. **Deletes** the public release (contains live session cookies)
 
 Options:
@@ -109,7 +109,7 @@ GitHub repository secrets (for CI, not the local script):
 │ GitHub Actions                                                   │
 │  seed-chrome-profile.yml                                         │
 │    → download release → extract profile → save Actions cache     │
-│  publish-cleaning-calendar.yml (optional verification)                               │
+│  publish-calendar.yml (optional verification)                               │
 │    → restore cache → fetch bookings → publish calendar           │
 └────────────────────────────┬────────────────────────────────────┘
                              │
@@ -146,8 +146,8 @@ gh run watch --repo dustEffect/airbnb "$(gh run list --repo dustEffect/airbnb --
 ### 3. Verify with a fetch (optional but recommended)
 
 ```bash
-gh workflow run publish-cleaning-calendar.yml --repo dustEffect/airbnb
-gh run watch --repo dustEffect/airbnb "$(gh run list --repo dustEffect/airbnb --workflow publish-cleaning-calendar.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+gh workflow run publish-calendar.yml --repo dustEffect/airbnb
+gh run watch --repo dustEffect/airbnb "$(gh run list --repo dustEffect/airbnb --workflow publish-calendar.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
 ```
 
 ### 4. Delete the release (security)
@@ -235,7 +235,7 @@ export PATH="/opt/X11/bin:$PATH"
 
 You are on Apple Silicon and Docker pulled an ARM image. The script forces `--platform linux/amd64`; make sure you run the current version of `seed-chrome-profile-local.sh`.
 
-### `Cache save failed` in publish-cleaning-calendar.yml
+### `Cache save failed` in publish-calendar.yml
 
 Harmless if the seed workflow already populated the cache. Newer workflow versions save under `airbnb-chrome-profile-<run_id>` so each run can update the profile without conflicting with an existing key.
 
@@ -259,9 +259,9 @@ gh api -X DELETE "repos/dustEffect/airbnb/git/refs/tags/chrome-profile-seed"
 
 | Task | Command |
 |------|---------|
-| Refresh calendar (normal) | `gh workflow run publish-cleaning-calendar.yml --repo dustEffect/airbnb` |
+| Refresh calendar (normal) | `gh workflow run publish-calendar.yml --repo dustEffect/airbnb` |
 | Reseed Chrome session | `./scripts/reseed-chrome-profile.sh` |
 | Check reseed prerequisites | `./scripts/reseed-chrome-profile.sh --preflight` |
-| Local HTML preview | `./cleanings.sh` |
+| Local HTML preview | `./calendar.sh` |
 
-The scheduled `publish-cleaning-calendar.yml` cron (05:00, 11:00, 17:00, 23:00 Lisbon / 04:00, 10:00, 16:00, 22:00 UTC) uses the cached profile automatically.
+The scheduled `publish-calendar.yml` cron (05:00, 11:00, 17:00, 23:00 Lisbon / 04:00, 10:00, 16:00, 22:00 UTC) uses the cached profile automatically.

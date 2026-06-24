@@ -1,4 +1,4 @@
-"""Shared Airbnb fetch entry point for fetch, checkouts, and cleanings scripts."""
+"""Shared Airbnb fetch entry point for fetch, checkouts, and calendar scripts."""
 
 from __future__ import annotations
 

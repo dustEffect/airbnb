@@ -1,8 +1,8 @@
-"""Tests for cleanings/booking_helpers.py."""
+"""Tests for calendars/booking_helpers.py."""
 
 from __future__ import annotations
 
-from cleanings.booking_helpers import (
+from calendars.booking_helpers import (
     booking_listing_label,
     outgoing_same_day_checkout_codes,
     start_column_for_month,

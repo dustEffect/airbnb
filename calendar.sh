@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the cleanings pipeline (requires: pip install -e . in .venv).
+# Run the calendar pipeline (requires: pip install -e . in .venv).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PY="$ROOT/.venv/bin/python"
 if [[ ! -x "$PY" ]]; then
@@ -8,4 +8,4 @@ if [[ ! -x "$PY" ]]; then
   echo "  cd \"$ROOT\" && python3 -m venv .venv && .venv/bin/pip install -e ." >&2
   exit 1
 fi
-exec "$PY" -m cleanings.main "$@"
+exec "$PY" -m calendars.main "$@"

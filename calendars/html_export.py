@@ -1,4 +1,4 @@
-"""Render the cleanings calendar as a self-contained HTML file."""
+"""Render the stay calendar as a self-contained HTML file."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
-from cleanings.calendar_model import (
+from calendars.calendar_model import (
     LISTING_COLORS,
     LISTING_ROW_ORDER,
     WEEKEND_COLOR,
@@ -16,8 +16,8 @@ from cleanings.calendar_model import (
     build_occupied_cells,
     month_grid,
 )
-from cleanings.booking_helpers import MONTHS_PT
-from cleanings.portugal_holidays import portugal_national_holidays
+from calendars.booking_helpers import MONTHS_PT
+from calendars.portugal_holidays import portugal_national_holidays
 from shared.pwa import pwa_icon_url, pwa_manifest_url, pwa_sw_url, PWA_SPLASH_BACKGROUND
 
 HOLIDAY_ICON = "🇵🇹"
@@ -733,7 +733,7 @@ def _initial_month_section_id(year: int) -> str:
     return MONTHS_PT[month_index].lower()
 
 
-def render_cleaning_html(*, year: int, bookings: list[dict]) -> str:
+def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
     occupied = build_occupied_cells(year, bookings)
     holidays = portugal_national_holidays(year)
 
@@ -1662,7 +1662,7 @@ if ("serviceWorker" in navigator) {{
 """
 
 
-def write_cleaning_html(
+def write_calendar_html(
     *,
     year: int,
     bookings: list[dict],
@@ -1670,7 +1670,7 @@ def write_cleaning_html(
 ) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
-        render_cleaning_html(year=year, bookings=bookings),
+        render_calendar_html(year=year, bookings=bookings),
         encoding="utf-8",
     )
     return output_path

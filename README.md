@@ -1,6 +1,6 @@
 # Airbnb scripts
 
-Personal automation for an Airbnb multicalendar: fetch reservations, format checkout summaries, and build a cleaning calendar HTML page.
+Personal automation for an Airbnb multicalendar: fetch reservations, format checkout summaries, and build a stay calendar HTML page.
 
 ## Pipelines
 
@@ -8,13 +8,13 @@ Personal automation for an Airbnb multicalendar: fetch reservations, format chec
 |--------|---------|
 | `./fetch.sh` | Log into Airbnb and write `shared/bookings.json` |
 | `./checkouts.sh` | Fetch (optional) and write `checkouts/checkouts.txt` |
-| `./cleanings.sh` | Fetch (optional) and write `cleanings/templates/cleanings-{year}.html` |
+| `./calendar.sh` | Fetch (optional) and write `calendars/templates/calendar-{year}.html` |
 
 All pipelines share the same bookings file: `shared/bookings.json`.
 
 ```
 fetch ──► shared/bookings.json ──► checkouts/checkouts.txt
-                              └──► cleanings calendar (html)
+                              └──► stay calendar (html)
 ```
 
 ## Setup
@@ -53,15 +53,15 @@ cp credentials.local.env.example credentials.local.env
 ./checkouts.sh --diff --no-fetch    # print changes from tomorrow, then update file
 ```
 
-### Cleaning calendar
+### Stay calendar
 
 ```bash
-./cleanings.sh                      # fetch full calendar year + write HTML
-./cleanings.sh --no-fetch           # reuse existing shared/bookings.json
-./cleanings.sh --year 2026 --no-fetch
+./calendar.sh                      # fetch full calendar year + write HTML
+./calendar.sh --no-fetch           # reuse existing shared/bookings.json
+./calendar.sh --year 2026 --no-fetch
 ```
 
-Each run writes a browser-viewable calendar at `cleanings/templates/cleanings-{year}.html` with the five listings and stay windows. To publish on GitHub Pages, copy it to `docs/index.html` and push.
+Each run writes a browser-viewable calendar at `calendars/templates/calendar-{year}.html` with the five listings and stay windows. When run from the default output directory, it also copies to `docs/index.html` for GitHub Pages.
 
 ### Console entry points
 
@@ -70,7 +70,7 @@ After `pip install -e .`, these are also available:
 ```bash
 airbnb-fetch
 airbnb-checkouts
-airbnb-cleanings
+airbnb-calendar
 ```
 
 Or via Python modules:
@@ -78,7 +78,7 @@ Or via Python modules:
 ```bash
 .venv/bin/python -m fetch.main
 .venv/bin/python -m checkouts.main
-.venv/bin/python -m cleanings.main
+.venv/bin/python -m calendars.main
 ```
 
 ## Tests
@@ -92,16 +92,16 @@ Or via Python modules:
 ```
 fetch/           Airbnb browser automation and bookings extraction
 checkouts/       Checkout text formatting
-cleanings/       HTML cleaning calendar
+calendars/       HTML stay calendar (`calendars`, not `calendar`, avoids Python stdlib name clash)
 shared/          Paths and listing label mapping
 ```
 
-## GitHub Actions (cleaning calendar)
+## GitHub Actions (stay calendar)
 
-The calendar at `docs/index.html` is published by `publish-cleaning-calendar.yml` (four times daily + manual dispatch):
+The calendar at `docs/index.html` is published by `publish-calendar.yml` (four times daily + manual dispatch):
 
 ```bash
-gh workflow run publish-cleaning-calendar.yml --repo dustEffect/airbnb
+gh workflow run publish-calendar.yml --repo dustEffect/airbnb
 ```
 
 CI needs a **logged-in Linux Chrome profile** in the Actions cache (Airbnb 2FA cannot be done headlessly in Actions). Reseed when the session expires:
@@ -120,7 +120,7 @@ Enable [GitHub notification settings](https://github.com/settings/notifications)
 
 - `shared/bookings.json`
 - `checkouts/checkouts.txt`
-- `cleanings/templates/cleanings-*.html`
+- `calendars/templates/calendar-*.html`
 - `profiles/` (Chrome user data)
 - `chrome-profile.tar.gz` (temporary seed archive)
 - `credentials.local.env`

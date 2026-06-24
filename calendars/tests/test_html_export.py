@@ -1,19 +1,19 @@
-"""Tests for cleanings/html_export.py."""
+"""Tests for calendars/html_export.py."""
 
 from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
 
-from cleanings.calendar_model import LISTING_ROW_ORDER
-from cleanings.html_export import (
+from calendars.calendar_model import LISTING_ROW_ORDER
+from calendars.html_export import (
     day_cell_id,
-    render_cleaning_html,
+    render_calendar_html,
     stay_cell_id,
     weekday_header_id,
-    write_cleaning_html,
+    write_calendar_html,
 )
-from cleanings.booking_helpers import MONTHS_PT
+from calendars.booking_helpers import MONTHS_PT
 
 T2 = "Totalmente Renovado, metro à porta"
 
@@ -37,10 +37,10 @@ def _booking(
     }
 
 
-class TestRenderCleaningHtml:
+class TestRenderCalendarHtml:
     def test_includes_year_listings_and_months(self) -> None:
         bookings = [_booking(T2, "2026-03-10", "2026-03-12")]
-        html_text = render_cleaning_html(year=2026, bookings=bookings)
+        html_text = render_calendar_html(year=2026, bookings=bookings)
 
         assert "Mapa de Estadias 2026" in html_text
         for label in LISTING_ROW_ORDER:
@@ -55,7 +55,7 @@ class TestRenderCleaningHtml:
 
     def test_all_stay_day_cells_are_clickable(self) -> None:
         bookings = [_booking(T2, "2026-03-10", "2026-03-12")]
-        html_text = render_cleaning_html(year=2026, bookings=bookings)
+        html_text = render_calendar_html(year=2026, bookings=bookings)
         assert html_text.count('class="cell listing-row stay stay-comment"') == 2
         assert (
             html_text.count('class="cell listing-row stay stay-comment stay-end"') == 1
@@ -68,7 +68,7 @@ class TestRenderCleaningHtml:
 
     def test_stay_end_gradient_uses_weekend_empty_color_on_weekends(self) -> None:
         bookings = [_booking(T2, "2026-03-12", "2026-03-14")]
-        html_text = render_cleaning_html(year=2026, bookings=bookings)
+        html_text = render_calendar_html(year=2026, bookings=bookings)
         assert 'id="T2-20260312" class="cell listing-row stay stay-comment"' in html_text
         assert (
             'id="T2-20260314" class="cell listing-row stay stay-comment stay-end weekend-end"'
@@ -83,7 +83,7 @@ class TestRenderCleaningHtml:
             _booking(T2, "2026-03-10", "2026-03-12", confirmation_code="HMTEST001"),
             _booking(T2, "2026-03-13", "2026-03-15", confirmation_code="HMTEST002"),
         ]
-        html_text = render_cleaning_html(year=2026, bookings=bookings)
+        html_text = render_calendar_html(year=2026, bookings=bookings)
         assert 'id="T2-20260312" class="cell listing-row stay stay-comment stay-end"' in html_text
         assert (
             'id="T2-20260315" class="cell listing-row stay stay-comment stay-end weekend-end"'
@@ -96,7 +96,7 @@ class TestRenderCleaningHtml:
         assert weekday_header_id(2027, 3, 12) == "ac-wh-2027-03-c12"
 
     def test_weekday_headers_cycle_icons_and_persist_state(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert 'id="ac-wh-2026-01-c04"' in html_text
         assert "airbnb-cleanings-weekday-icons-2026" in html_text
         assert (
@@ -116,26 +116,26 @@ class TestRenderCleaningHtml:
         assert "dblclick" in html_text
 
     def test_marks_today_with_red_circle_on_day_number(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=date.today().year, bookings=[])
         assert ".cell.day-num.is-today::before" in html_text
         assert "markToday" in html_text
         assert ' class="cell day-num day-comment is-today"' not in html_text
 
     def test_scrolls_today_into_center_on_narrow_viewports(self) -> None:
-        html_text = render_cleaning_html(year=date.today().year, bookings=[])
+        html_text = render_calendar_html(year=date.today().year, bookings=[])
         assert "scrollTodayIntoCenter" in html_text
         assert 'matchMedia("(max-width: 768px)")' in html_text
         assert "runInitialScroll" in html_text
 
     def test_day_number_cells_support_comments(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert day_cell_id(date(2026, 3, 15)) == "dia-20260315"
         assert 'id="dia-20260315"' in html_text
         assert 'class="cell day-num day-comment"' in html_text
         assert "initCommentCells" in html_text
 
     def test_commented_cells_have_clear_marker_styles(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert ".cell.stay-comment.has-comment" in html_text
         assert ".cell.day-comment.has-comment" in html_text
         assert "dashed" in html_text
@@ -143,7 +143,7 @@ class TestRenderCleaningHtml:
         assert "Nota:" in html_text
 
     def test_long_press_shows_transient_comment_peek(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert "comment-peek" in html_text
         assert "showCommentPeek" in html_text
         assert "hideCommentPeek" in html_text
@@ -154,7 +154,7 @@ class TestRenderCleaningHtml:
         assert "limpezas" not in html_text.lower()
 
     def test_empty_slots_support_custom_stay_selection(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert 'class="cell listing-row empty-slot' in html_text
         assert 'data-listing="T2"' in html_text
         assert 'id="custom-stay-add"' in html_text
@@ -169,13 +169,13 @@ class TestRenderCleaningHtml:
 
     def test_tooltips_exclude_confirmation_codes(self) -> None:
         bookings = [_booking(T2, "2026-03-10", "2026-03-12")]
-        html_text = render_cleaning_html(year=2026, bookings=bookings)
+        html_text = render_calendar_html(year=2026, bookings=bookings)
         assert "Reserva:" not in html_text
         assert 'title="T2: 2026-03-10 → 2026-03-12 | Hóspedes: 2a"' in html_text
         assert 'data-stay-key="HMTEST001"' in html_text
 
     def test_long_press_opens_airbnb_stay_url(self) -> None:
-        html_text = render_cleaning_html(
+        html_text = render_calendar_html(
             year=2026,
             bookings=[_booking(T2, "2026-03-10", "2026-03-12", confirmation_code="HMEST3TFBZ")],
         )
@@ -185,7 +185,7 @@ class TestRenderCleaningHtml:
         assert "window.open(stayUrl" in html_text
 
     def test_marks_portugal_national_holidays_on_weekday_headers(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert "Feriado nacional</span>" not in html_text
         assert 'class="cell header weekday-header has-holiday' in html_text
         assert '<span class="holiday-marker" aria-hidden="true">🇵🇹</span>' in html_text
@@ -203,7 +203,7 @@ class TestRenderCleaningHtml:
         assert "national-holiday" not in html_text
 
     def test_month_grids_align_weekdays_without_padding_cells(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert 'grid-template-columns: 2.5rem repeat(37, var(--day-size))' in html_text
         weekday_headers = [
             line
@@ -218,14 +218,14 @@ class TestRenderCleaningHtml:
         assert 'grid-row:2;grid-column:5" data-date="20260101" role="button" tabindex="0">1</div>' in january
 
     def test_includes_mobile_friendly_viewport_and_layout(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert "viewport-fit=cover" in html_text
         assert "safe-area-inset" in html_text
         assert "Deslize para ver mais dias" in html_text
         assert "position: sticky" in html_text
 
     def test_includes_pwa_manifest_and_service_worker(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=2026, bookings=[])
         assert 'rel="manifest" href="/airbnb/manifest.webmanifest?v=7"' in html_text
         assert "navigator.serviceWorker.register('/airbnb/sw.js?v=7'" in html_text
         assert "updateViaCache: \"none\"" in html_text
@@ -236,16 +236,16 @@ class TestRenderCleaningHtml:
         assert 'name="theme-color" content="#D7EBFA"' in html_text
 
     def test_scrolls_to_current_month_on_load(self) -> None:
-        html_text = render_cleaning_html(year=2026, bookings=[])
+        html_text = render_calendar_html(year=date.today().year, bookings=[])
         assert "MONTH_IDS" in html_text
         assert "now.getMonth()" in html_text
         assert "getElementById(MONTH_IDS[monthIndex])" in html_text
         assert "scrollToInitialMonth" in html_text
         assert "scroll-margin-top" in html_text
 
-    def test_write_cleaning_html_creates_file(self, tmp_path: Path) -> None:
-        out = tmp_path / "cleanings-2026.html"
+    def test_write_calendar_html_creates_file(self, tmp_path: Path) -> None:
+        out = tmp_path / "calendar-2026.html"
         bookings = [_booking(T2, "2026-03-10", "2026-03-12")]
-        write_cleaning_html(year=2026, bookings=bookings, output_path=out)
+        write_calendar_html(year=2026, bookings=bookings, output_path=out)
         assert out.is_file()
         assert "2026" in out.read_text(encoding="utf-8")

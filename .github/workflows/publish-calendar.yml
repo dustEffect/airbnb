@@ -1,4 +1,4 @@
-name: Publish cleaning calendar
+name: Publish calendar
 
 on:
   schedule:
@@ -44,12 +44,12 @@ jobs:
             airbnb-chrome-profile-
 
       - name: Fetch bookings and build calendar HTML
-        run: ./cleanings.sh --year "$(date -u +%Y)"
+        run: ./calendar.sh --year "$(date -u +%Y)"
 
       - name: Publish calendar to GitHub Pages
         run: |
           YEAR="$(date -u +%Y)"
-          cp "cleanings/templates/cleanings-${YEAR}.html" docs/index.html
+          cp "calendars/templates/calendar-${YEAR}.html" docs/index.html
 
       - name: Commit and push calendar
         run: |
@@ -59,7 +59,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "Calendar unchanged; skipping commit."
           else
-            git commit -m "Update cleaning calendar"
+            git commit -m "Update calendar"
             git push
           fi
 

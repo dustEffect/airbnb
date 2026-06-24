@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "airbnb-scripts"
 version = "0.1.0"
-description = "Airbnb multicalendar fetch, checkout summaries, and cleaning calendar HTML"
+description = "Airbnb multicalendar fetch, checkout summaries, and stay calendar HTML"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -17,15 +17,15 @@ dependencies = [
 [project.scripts]
 airbnb-fetch = "fetch.main:main"
 airbnb-checkouts = "checkouts.main:main"
-airbnb-cleanings = "cleanings.main:main"
+airbnb-calendar = "calendars.main:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0,<9"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["fetch*", "checkouts*", "cleanings*", "shared*"]
+include = ["fetch*", "checkouts*", "calendars*", "shared*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["fetch/tests", "checkouts/tests", "cleanings/tests"]
+testpaths = ["fetch/tests", "checkouts/tests", "calendars/tests"]

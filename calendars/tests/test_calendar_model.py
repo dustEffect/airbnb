@@ -1,10 +1,10 @@
-"""Tests for cleanings/calendar_model.py."""
+"""Tests for calendars/calendar_model.py."""
 
 from __future__ import annotations
 
 from datetime import date
 
-from cleanings.calendar_model import build_occupied_cells, month_grid
+from calendars.calendar_model import build_occupied_cells, month_grid
 from shared.listing_labels import LISTING_LABELS
 
 T2 = "Totalmente Renovado, metro à porta"

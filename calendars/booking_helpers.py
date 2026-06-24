@@ -1,4 +1,4 @@
-"""Booking and calendar-grid helpers for the cleaning HTML calendar."""
+"""Booking and calendar-grid helpers for the stay calendar HTML export."""
 
 from __future__ import annotations
 

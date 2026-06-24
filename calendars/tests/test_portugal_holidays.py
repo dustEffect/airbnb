@@ -1,10 +1,10 @@
-"""Tests for cleanings/portugal_holidays.py."""
+"""Tests for calendars/portugal_holidays.py."""
 
 from __future__ import annotations
 
 from datetime import date
 
-from cleanings.portugal_holidays import portugal_national_holidays
+from calendars.portugal_holidays import portugal_national_holidays
 
 
 class TestPortugalNationalHolidays:

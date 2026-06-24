@@ -1,4 +1,4 @@
-"""Calendar grid model for HTML export (mirrors cleanings/main.py stay rules)."""
+"""Calendar grid model for HTML export (mirrors calendars/main.py stay rules)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from cleanings.booking_helpers import (
+from calendars.booking_helpers import (
     FIRST_DAY_COL,
     LAST_DAY_COL,
     TEMPLATE_WEEKDAY_PHASE,

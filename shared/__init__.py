@@ -1,1 +1,1 @@
-# Shared constants and paths for checkouts and cleanings pipelines.
+# Shared constants and paths for checkouts and calendar pipelines.

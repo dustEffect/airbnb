@@ -22,6 +22,5 @@ profiles/
 chrome-profile.tar.gz
 shared/bookings.json
 checkouts/checkouts.txt
-cleanings/cleanings.txt
-cleanings/templates/cleanings-*.html
+calendars/templates/calendar-*.html
 network_capture/

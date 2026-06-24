@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -170,30 +170,47 @@ def _month_label(header: str) -> str:
     return header[:-1] if header in _MONTH_HEADERS else ""
 
 
-def _checkout_diff_key(line: str) -> str | None:
+def _parse_checkout_row(line: str) -> str | None:
     """
-    Normalize a checkout row for diff comparison within one listing unit.
-    Uses listing label, day-of-month, weekday, and optional gap window (a ? / a N).
+    Return the base key "LABEL DAY WEEKDAY" (e.g. "EB 8 seg.") for a checkout row.
+    Each listing unit (T0, T1, T2, EA, EB) is bucketed independently so diffs
+    are always within the same unit — never across different units.
+    Returns None for month headers and unparseable rows.
     """
     if line in _MONTH_HEADERS:
         return None
-
     cleaned = _PARENTHETICAL_RE.sub("", line.replace(WARNING_ICON, "")).strip()
     parts = cleaned.split()
     if len(parts) < 3:
         return None
-
     label = parts[-1]
-    key_parts = [label, parts[0], parts[1]]
-    if len(parts) >= 5 and parts[2] == "a":
-        key_parts.extend(parts[2:4])
-    return " ".join(key_parts)
+    return f"{label} {parts[0]} {parts[1]}"
+
+
+def _match_rows(
+    old_lines: list[str],
+    new_lines: list[str],
+) -> tuple[list[str], list[str]]:
+    """
+    Match old and new checkout lines for the same listing unit on the same day.
+
+    All lines in the same group share label + checkout day + weekday; only the
+    gap window and warning icon vary, and both are ignored.  Matching is therefore
+    purely by count: any old line pairs with any new line.
+    Returns (unmatched_old_lines, unmatched_new_lines).
+    """
+    n_matched = min(len(old_lines), len(new_lines))
+    return old_lines[n_matched:], new_lines[n_matched:]
 
 
 def _checkouts_by_month(
     lines: list[str],
-) -> dict[str, tuple[Counter[str], dict[str, list[str]]]]:
-    by_month: dict[str, tuple[Counter[str], dict[str, list[str]]]] = {}
+) -> dict[str, dict[str, list[str]]]:
+    """
+    Group checkout lines by month, then by base key ("LABEL DAY WEEKDAY").
+    Each listing unit on each day gets its own bucket; diffs never cross units.
+    """
+    by_month: dict[str, dict[str, list[str]]] = {}
     current_month = ""
 
     for line in lines:
@@ -202,20 +219,19 @@ def _checkouts_by_month(
             current_month = month
             continue
 
-        key = _checkout_diff_key(line)
-        if not key:
+        base_key = _parse_checkout_row(line)
+        if not base_key:
             continue
 
         if current_month not in by_month:
-            by_month[current_month] = (Counter(), defaultdict(list))
-        counts, lines_by_key = by_month[current_month]
-        counts[key] += 1
-        lines_by_key[key].append(line)
+            by_month[current_month] = defaultdict(list)
+        by_month[current_month][base_key].append(line)
 
     return by_month
 
 
 def _sort_checkout_key(key: str) -> tuple[int, int, str]:
+    # key is "LABEL DAY WEEKDAY" (e.g. "EB 8 seg.")
     parts = key.split()
     label = parts[0]
     day = int(parts[1])
@@ -228,7 +244,7 @@ def _checkout_date_from_diff_key(month: str, key: str, *, year: int) -> date | N
     if month_index is None:
         return None
     try:
-        day = int(key.split()[1])
+        day = int(key.split()[1])  # key is "LABEL DAY WEEKDAY"
         return date(year, month_index + 1, day)
     except (ValueError, IndexError):
         return None
@@ -249,9 +265,12 @@ def print_checkouts_diff(
 ) -> bool:
     """
     Print checkout row differences between existing checkouts.txt and new_text.
-    Each listing unit (T0, T1, T2, EA, EB) is compared independently.
-    Rows match on listing, day-of-month, weekday, and gap window (a ? / a N);
-    warning icon and parenthetical times are ignored.
+
+    Each listing unit (T0, T1, T2, EA, EB) is diffed independently against its
+    own past data — comparisons never cross unit boundaries.  Within each unit,
+    any gap window (a ?, a N, or absent) and warning icons are ignored.
+    Warning icons and parenthetical times are ignored.
+
     By default only checkouts on or after tomorrow are included.
     Each month's changes are prefixed with a short month label (e.g. JUN, AGO).
     Returns True when any difference was printed.
@@ -275,28 +294,29 @@ def print_checkouts_diff(
 
     printed_any = False
     for month in all_months:
-        old_counts, old_lines_by_key = old_by_month.get(month, (Counter(), {}))
-        new_counts, new_lines_by_key = new_by_month.get(month, (Counter(), {}))
-        month_keys = sorted(
-            set(old_counts) | set(new_counts),
+        old_groups = old_by_month.get(month, {})
+        new_groups = new_by_month.get(month, {})
+        all_base_keys = sorted(
+            set(old_groups) | set(new_groups),
             key=_sort_checkout_key,
         )
 
         removals: list[str] = []
         additions: list[str] = []
-        for key in month_keys:
-            checkout_date = _checkout_date_from_diff_key(month, key, year=year)
+        for base_key in all_base_keys:
+            checkout_date = _checkout_date_from_diff_key(month, base_key, year=year)
             if checkout_date is None or checkout_date < diff_from:
                 continue
 
-            removed = old_counts[key] - new_counts.get(key, 0)
-            added = new_counts[key] - old_counts.get(key, 0)
-            for line in old_lines_by_key.get(key, [])[:removed]:
+            old_rows = old_groups.get(base_key, [])
+            new_rows = new_groups.get(base_key, [])
+            unmatched_old, unmatched_new = _match_rows(old_rows, new_rows)
+            for line in unmatched_old:
                 removals.append(f"(caiu) {line}")
-            for line in new_lines_by_key.get(key, [])[:added]:
+            for line in unmatched_new:
                 additions.append(f"+ {line}")
-        month_output = removals + additions
 
+        month_output = removals + additions
         if month_output:
             print(month)
             for line in month_output:

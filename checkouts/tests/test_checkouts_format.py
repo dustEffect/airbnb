@@ -262,7 +262,13 @@ class TestPrintCheckoutsDiff:
         assert changed is False
         assert output == ""
 
-    def test_diffs_listing_units_independently(self, tmp_path: Path, capsys) -> None:
+    def test_each_listing_is_diffed_independently(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        # EB and EA are separate units diffed against themselves.
+        # EB's checkout disappearing is EB's own difference.
+        # EA's checkout appearing is EA's own difference.
+        # They are never compared against each other.
         existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n")
         changed = print_checkouts_diff(
             "JUN.\n8 seg. EA\n",
@@ -273,6 +279,34 @@ class TestPrintCheckoutsDiff:
         output = capsys.readouterr().out.splitlines()
         assert changed is True
         assert output == ["JUN", "(caiu) 8 seg. EB", "+ 8 seg. EA"]
+
+    def test_checkout_count_increase_on_day_is_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n")
+        changed = print_checkouts_diff(
+            "JUN.\n8 seg. EB\n8 seg. T1\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        output = capsys.readouterr().out.splitlines()
+        assert changed is True
+        assert output == ["JUN", "+ 8 seg. T1"]
+
+    def test_checkout_count_decrease_on_day_is_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n8 seg. T1\n")
+        changed = print_checkouts_diff(
+            "JUN.\n8 seg. T1\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        output = capsys.readouterr().out.splitlines()
+        assert changed is True
+        assert output == ["JUN", "(caiu) 8 seg. EB"]
 
     def test_ignores_parenthetical_times(self, tmp_path: Path, capsys) -> None:
         existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB (11h)\n")
@@ -311,28 +345,32 @@ class TestPrintCheckoutsDiff:
                 return cls(2026, 6, 9)
 
         monkeypatch.setattr("checkouts.checkouts_format.date", FixedDate)
+        # Day 8 (Jun 8, past): skipped entirely regardless of changes
+        # Day 14 (Jun 14): EB checkout disappeared → IS a difference for EB
+        # Day 17 (Jun 17): EB gone, T1 appeared → each shown as its own per-unit diff
         existing = _existing_checkouts_file(
             tmp_path,
-            "JUN.\n8 seg. EB\n14 dom. EB\n17 qua. a ? T1\n",
+            "JUN.\n8 seg. EB\n14 dom. EB\n17 qua. EB\n",
         )
         changed = print_checkouts_diff(
-            "JUN.\n8 seg. EB\n14 dom. EA\n17 qua. T1\n",
+            "JUN.\n8 seg. EA\n17 qua. T1\n",
             existing_path=existing,
             reference_year=2026,
         )
         output = capsys.readouterr().out.splitlines()
         assert changed is True
-        assert "(caiu) 8 seg. EB" not in output
-        assert "9 ter." not in output
+        assert "8 seg." not in " ".join(output)  # past date skipped
         assert output == [
             "JUN",
             "(caiu) 14 dom. EB",
-            "(caiu) 17 qua. a ? T1",
-            "+ 14 dom. EA",
+            "(caiu) 17 qua. EB",
             "+ 17 qua. T1",
         ]
 
-    def test_prints_gap_window_changes(self, tmp_path: Path, capsys) -> None:
+    def test_gap_window_appearing_is_not_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        # No marker → specific day: the next check-in just became known, not a real change
         existing = _existing_checkouts_file(tmp_path, "JUL.\n7 ter. EB\n")
         changed = print_checkouts_diff(
             "JUL.\n7 ter. a 12 EB\n",
@@ -340,11 +378,107 @@ class TestPrintCheckoutsDiff:
             diff_from_date=self._DIFF_FROM,
             reference_year=2026,
         )
-        output = capsys.readouterr().out.splitlines()
-        assert changed is True
-        assert output == ["JUL", "(caiu) 7 ter. EB", "+ 7 ter. a 12 EB"]
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_gap_window_disappearing_is_not_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        # Specific day → no marker: next check-in disappeared from view, not a real change
+        existing = _existing_checkouts_file(tmp_path, "JUL.\n7 ter. a 12 EB\n")
+        changed = print_checkouts_diff(
+            "JUL.\n7 ter. EB\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_question_mark_vs_specific_day_is_not_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        # "3 sex. a 5 T1" and "3 sex. a ? T1" – same checkout day, ? matches a N
+        existing = _existing_checkouts_file(tmp_path, "JUL.\n3 sex. a 5 T1\n")
+        changed = print_checkouts_diff(
+            "JUL.\n3 sex. a ? T1\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_specific_day_vs_question_mark_is_not_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        # Symmetric: "3 sex. a ? T1" and "3 sex. a 5 T1" – ? matches a N
+        existing = _existing_checkouts_file(tmp_path, "JUL.\n3 sex. a ? T1\n")
+        changed = print_checkouts_diff(
+            "JUL.\n3 sex. a 5 T1\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_different_specific_days_is_not_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        # Gap window is entirely ignored; a 7 → a 6 is not a difference
+        existing = _existing_checkouts_file(tmp_path, "JUL.\n3 sex. a 7 T1\n")
+        changed = print_checkouts_diff(
+            "JUL.\n3 sex. a 6 T1\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_question_mark_vs_no_marker_is_not_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUL.\n3 sex. a ? T1\n")
+        changed = print_checkouts_diff(
+            "JUL.\n3 sex. T1\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_specific_day_vs_no_marker_is_not_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUL.\n3 sex. a 5 T1\n")
+        changed = print_checkouts_diff(
+            "JUL.\n3 sex. T1\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
+
+    def test_question_mark_vs_question_mark_is_not_a_difference(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        existing = _existing_checkouts_file(tmp_path, "JUL.\n3 sex. a ? T1\n")
+        changed = print_checkouts_diff(
+            "JUL.\n3 sex. a ? T1\n",
+            existing_path=existing,
+            diff_from_date=self._DIFF_FROM,
+            reference_year=2026,
+        )
+        assert changed is False
+        assert capsys.readouterr().out == ""
 
     def test_diff_from_payload_uses_formatted_output(self, tmp_path: Path, capsys) -> None:
+        # Day 8: EB gone (EB's own diff), EA appeared (EA's own diff) — shown independently
+        # Day 14: EA checkout newly appeared — EA's own diff
         existing = _existing_checkouts_file(tmp_path, "JUN.\n8 seg. EB\n")
         payload = _payload(
             _booking(EA, "2026-06-05", "2026-06-08"),

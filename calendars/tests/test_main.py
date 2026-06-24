@@ -1,11 +1,11 @@
-"""Tests for cleanings/main.py."""
+"""Tests for calendars/main.py."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from cleanings.main import build_cleaning_html
+from calendars.main import build_calendar_html
 
 T2 = "Totalmente Renovado, metro à porta"
 
@@ -28,7 +28,7 @@ def _booking(
     }
 
 
-class TestBuildCleaningHtml:
+class TestBuildCalendarHtml:
     def test_writes_html_for_booking_year(self, tmp_path: Path) -> None:
         bookings_path = tmp_path / "bookings.json"
         output_dir = tmp_path / "out"
@@ -47,9 +47,9 @@ class TestBuildCleaningHtml:
             encoding="utf-8",
         )
 
-        year, html_path = build_cleaning_html(bookings_path, output_dir)
+        year, html_path = build_calendar_html(bookings_path, output_dir)
         assert year == 2026
-        assert html_path == output_dir / "cleanings-2026.html"
+        assert html_path == output_dir / "calendar-2026.html"
         assert html_path.is_file()
         html_text = html_path.read_text(encoding="utf-8")
         assert "Mapa de Estadias 2026" in html_text

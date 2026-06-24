@@ -9,7 +9,7 @@
 # Options:
 #   --local-only     Create profile and upload release only; skip CI workflows
 #   --ci-only        Skip local Docker login; run CI workflows (release must exist)
-#   --skip-fetch     Seed cache but do not run publish-cleaning-calendar.yml afterwards
+#   --skip-fetch     Seed cache but do not run publish-calendar.yml afterwards
 #   --skip-cleanup   Do not delete the temporary GitHub release (not recommended)
 #   --preflight      Check Docker, gh, credentials, and XQuartz display; then exit
 #   -h, --help       Show this help
@@ -181,11 +181,11 @@ _wait_for_workflow seed-chrome-profile.yml "Seed Chrome profile cache"
 if [[ "$SKIP_FETCH" -eq 0 ]]; then
   echo
   echo "== Step 3/4: Verify CI fetch + publish calendar =="
-  gh workflow run publish-cleaning-calendar.yml --repo "$REPO"
-  _wait_for_workflow publish-cleaning-calendar.yml "Publish cleaning calendar"
+  gh workflow run publish-calendar.yml --repo "$REPO"
+  _wait_for_workflow publish-calendar.yml "Publish calendar"
 else
   echo
-  echo "== Step 3/4: Skipped publish-cleaning-calendar.yml (--skip-fetch) =="
+  echo "== Step 3/4: Skipped publish-calendar.yml (--skip-fetch) =="
 fi
 
 if [[ "$SKIP_CLEANUP" -eq 0 ]]; then
@@ -206,4 +206,4 @@ fi
 echo
 echo "Done."
 echo "  • Profile is in Actions cache (restore key prefix: airbnb-chrome-profile-)"
-echo "  • Refresh calendar anytime: gh workflow run publish-cleaning-calendar.yml --repo $REPO"
+echo "  • Refresh calendar anytime: gh workflow run publish-calendar.yml --repo $REPO"

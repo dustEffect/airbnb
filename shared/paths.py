@@ -6,7 +6,7 @@ from pathlib import Path
 
 SHARED_DIR = "shared"
 CHECKOUTS_DIR = "checkouts"
-CLEANINGS_DIR = "cleanings"
+CALENDARS_DIR = "calendars"
 BOOKINGS_FILENAME = "bookings.json"
 CHECKOUTS_SUMMARY_FILENAME = "checkouts.txt"
 
