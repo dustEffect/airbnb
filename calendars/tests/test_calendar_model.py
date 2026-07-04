@@ -17,8 +17,9 @@ def _booking(
     *,
     confirmation_code: str = "HMTEST001",
     adults: int = 2,
+    guest_first_name: str | None = None,
 ) -> dict:
-    return {
+    booking = {
         "confirmationCode": confirmation_code,
         "listingName": listing_name,
         "startDate": start_date,
@@ -27,6 +28,9 @@ def _booking(
         "numberOfChildren": 0,
         "numberOfInfants": 0,
     }
+    if guest_first_name is not None:
+        booking["guestFirstName"] = guest_first_name
+    return booking
 
 
 class TestBuildOccupiedCells:
@@ -39,6 +43,15 @@ class TestBuildOccupiedCells:
         assert date(2026, 3, 11) in occupied
         assert date(2026, 3, 12) in occupied
         assert occupied[date(2026, 3, 10)][label].guest_label == "2a"
+        assert occupied[date(2026, 3, 11)][label].guest_label == ""
+
+    def test_shows_first_name_on_check_in_day(self) -> None:
+        bookings = [
+            _booking(T2, "2026-03-10", "2026-03-12", guest_first_name="Jean")
+        ]
+        occupied = build_occupied_cells(2026, bookings)
+        label = LISTING_LABELS[T2]
+        assert occupied[date(2026, 3, 10)][label].guest_label == "2a - Jean"
         assert occupied[date(2026, 3, 11)][label].guest_label == ""
 
     def test_skips_outgoing_checkout_on_same_day_turnover(self) -> None:

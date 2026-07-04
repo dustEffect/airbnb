@@ -25,8 +25,9 @@ def _booking(
     *,
     adults: int = 2,
     confirmation_code: str = "HMTEST001",
+    guest_first_name: str | None = None,
 ) -> dict:
-    return {
+    booking = {
         "confirmationCode": confirmation_code,
         "listingName": listing_name,
         "startDate": start_date,
@@ -35,6 +36,9 @@ def _booking(
         "numberOfChildren": 0,
         "numberOfInfants": 0,
     }
+    if guest_first_name is not None:
+        booking["guestFirstName"] = guest_first_name
+    return booking
 
 
 class TestRenderCalendarHtml:
@@ -169,8 +173,9 @@ class TestRenderCalendarHtml:
         assert "toggleEmptySlotSelection" in html_text
         assert "bindEmptySlotLongPress" in html_text
         assert "airbnb-custom-stays-2026" in html_text
-        assert "stay-custom-label-mask" in html_text
-        assert "layoutCustomStayLabelMask" in html_text
+        assert "stay-label-mask" in html_text
+        assert "layoutStayLabelMask" in html_text
+        assert "layoutAirbnbStayLabels" in html_text
         assert "repeating-linear-gradient" in html_text
         assert "customStayHasComment" in html_text
 
@@ -180,6 +185,14 @@ class TestRenderCalendarHtml:
         assert "Reserva:" not in html_text
         assert 'title="T2: 2026-03-10 → 2026-03-12 | Hóspedes: 2a"' in html_text
         assert 'data-stay-key="HMTEST001"' in html_text
+
+    def test_guest_display_label_uses_data_attribute_and_spanning_mask(self) -> None:
+        bookings = [_booking(T2, "2026-03-10", "2026-03-12", guest_first_name="Jean")]
+        html_text = render_calendar_html(year=2026, bookings=bookings)
+        assert 'data-guest-label="2a - Jean"' in html_text
+        assert ">2a - Jean</div>" not in html_text
+        assert 'title="T2: 2026-03-10 → 2026-03-12 | Hóspedes: 2a - Jean"' in html_text
+        assert "relayoutAllStayLabels" in html_text
 
     def test_long_press_opens_airbnb_stay_url(self) -> None:
         html_text = render_calendar_html(

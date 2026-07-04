@@ -379,7 +379,7 @@ main {
   background: var(--stay-color) !important;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
-.stay-custom-label-mask {
+.stay-label-mask {
   position: absolute;
   pointer-events: none;
   z-index: 3;
@@ -400,7 +400,7 @@ main {
     transparent calc(var(--day-size) + var(--grid-gap))
   );
 }
-.stay-custom-label-mask .stay-custom-label {
+.stay-label-mask .stay-label {
   position: absolute;
   left: 3px;
   top: 50%;
@@ -711,7 +711,6 @@ def _render_month(
             stay = occupied.get(day_date, {}).get(listing)
             if stay:
                 title = html.escape(_cell_title(stay), quote=True)
-                label = html.escape(stay.guest_label)
                 cell_id = stay_cell_id(listing, day_date)
                 stay_key = html.escape(_stay_identity(stay), quote=True)
                 stay_classes = ["cell", "listing-row", "stay", "stay-comment"]
@@ -720,6 +719,11 @@ def _render_month(
                     if col.is_weekend:
                         stay_classes.append("weekend-end")
                 weekend_attr = ' data-weekend="true"' if col.is_weekend else ""
+                guest_label_attr = ""
+                if stay.guest_label:
+                    guest_label_attr = (
+                        f' data-guest-label="{html.escape(stay.guest_label, quote=True)}"'
+                    )
                 parts.append(
                     f'<div id="{html.escape(cell_id)}"'
                     f' class="{" ".join(stay_classes)}"'
@@ -728,8 +732,9 @@ def _render_month(
                     f' data-listing="{html.escape(listing)}"'
                     f' data-date="{day_date.strftime("%Y%m%d")}"'
                     f' data-stay-key="{stay_key}"'
+                    f'{guest_label_attr}'
                     f'{weekend_attr}'
-                    f' role="button" tabindex="0">{label}</div>'
+                    f' role="button" tabindex="0"></div>'
                 )
             else:
                 cls = "cell listing-row empty-slot"
@@ -1138,33 +1143,75 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
     document.querySelectorAll(".stay-comment, .day-comment").forEach(bindStayCell);
   }}
 
-  function removeCustomStayLabelMask(customStayId) {{
+  function removeStayLabelMask(maskKey) {{
     document
-      .querySelectorAll('.stay-custom-label-mask[data-custom-stay="' + customStayId + '"]')
+      .querySelectorAll('.stay-label-mask[data-stay-label-key="' + maskKey + '"]')
       .forEach((el) => el.remove());
   }}
 
-  function layoutCustomStayLabelMask(stay, cells) {{
-    removeCustomStayLabelMask(stay.id);
-    if (!stay.guestLabel || cells.length === 0) return;
+  function layoutStayLabelMask(maskKey, label, cells) {{
+    removeStayLabelMask(maskKey);
+    if (!label || cells.length === 0) return;
 
     const grid = cells[0].closest(".grid");
     if (!grid) return;
 
-    const first = cells[0];
-    const last = cells[cells.length - 1];
+    const inGrid = cells.filter((cell) => cell.closest(".grid") === grid);
+    if (inGrid.length === 0) return;
+
+    const first = inGrid[0];
+    const last = inGrid[inGrid.length - 1];
     const mask = document.createElement("div");
-    mask.className = "stay-custom-label-mask";
-    mask.dataset.customStay = stay.id;
-    const label = document.createElement("span");
-    label.className = "stay-custom-label";
-    label.textContent = stay.guestLabel;
-    mask.appendChild(label);
+    mask.className = "stay-label-mask";
+    mask.dataset.stayLabelKey = maskKey;
+    const labelEl = document.createElement("span");
+    labelEl.className = "stay-label";
+    labelEl.textContent = label;
+    mask.appendChild(labelEl);
     mask.style.left = first.offsetLeft + "px";
     mask.style.top = first.offsetTop + "px";
     mask.style.width = last.offsetLeft + last.offsetWidth - first.offsetLeft + "px";
     mask.style.height = first.offsetHeight + "px";
     grid.appendChild(mask);
+  }}
+
+  function layoutCustomStayLabelMask(stay, cells) {{
+    layoutStayLabelMask("custom:" + stay.id, stay.guestLabel, cells);
+  }}
+
+  function layoutAirbnbStayLabelsInGrid(grid) {{
+    const keys = new Set();
+    grid.querySelectorAll(".stay-comment:not(.stay-custom)[data-stay-key]").forEach((cell) => {{
+      keys.add(cell.dataset.stayKey);
+    }});
+    keys.forEach((key) => {{
+      const cells = Array.from(
+        grid.querySelectorAll('.stay-comment[data-stay-key="' + key + '"]')
+      )
+        .filter(
+          (cell) =>
+            !cell.classList.contains("stay-custom") && cell.closest(".grid") === grid
+        )
+        .sort((left, right) => compareDates(left.dataset.date, right.dataset.date));
+      const labelCell = cells.find((cell) => cell.dataset.guestLabel);
+      const label = labelCell ? labelCell.dataset.guestLabel : "";
+      layoutStayLabelMask("airbnb:" + key, label, cells);
+    }});
+  }}
+
+  function layoutAirbnbStayLabels() {{
+    document.querySelectorAll(".month-scroll .grid").forEach(layoutAirbnbStayLabelsInGrid);
+  }}
+
+  function relayoutAllStayLabels() {{
+    document.querySelectorAll(".stay-label-mask").forEach((el) => el.remove());
+    layoutAirbnbStayLabels();
+    loadCustomStays().forEach((stay) => {{
+      const cells = Array.from(
+        document.querySelectorAll('[data-custom-stay="' + stay.id + '"]')
+      );
+      if (cells.length) layoutStayLabelMask("custom:" + stay.id, stay.guestLabel, cells);
+    }});
   }}
 
   function nextStayCell(listing, dateValue) {{
@@ -1201,13 +1248,7 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
   }}
 
   function relayoutAllCustomStayLabels() {{
-    document.querySelectorAll(".stay-custom-label-mask").forEach((el) => el.remove());
-    loadCustomStays().forEach((stay) => {{
-      const cells = Array.from(
-        document.querySelectorAll('[data-custom-stay="' + stay.id + '"]')
-      );
-      if (cells.length) layoutCustomStayLabelMask(stay, cells);
-    }});
+    relayoutAllStayLabels();
   }}
 
   function paintCustomStay(stay) {{
@@ -1242,7 +1283,7 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
   }}
 
   function applyCustomStays() {{
-    document.querySelectorAll(".stay-custom-label-mask").forEach((el) => el.remove());
+    document.querySelectorAll(".stay-label-mask").forEach((el) => el.remove());
     loadCustomStays().forEach(paintCustomStay);
     refreshStayEndGradients();
   }}
@@ -1275,7 +1316,7 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
     if (customStayHasComment(customStayId)) return;
     const stays = loadCustomStays().filter((stay) => stay.id !== customStayId);
     saveCustomStays(stays);
-    removeCustomStayLabelMask(customStayId);
+    removeStayLabelMask("custom:" + customStayId);
     document.querySelectorAll('[data-custom-stay="' + customStayId + '"]').forEach((cell) => {{
       restoreEmptyCell(cell);
     }});
@@ -1509,6 +1550,7 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
   }});
 
   applyCustomStays();
+  layoutAirbnbStayLabels();
   initCommentCells();
   initEmptySlotSelection();
   applySavedComments();

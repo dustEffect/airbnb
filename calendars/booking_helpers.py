@@ -51,6 +51,15 @@ def stay_guest_label(booking: dict) -> str:
     return " ".join(parts)
 
 
+def stay_guest_display_label(booking: dict) -> str:
+    """Guest count label shown on check-in, optionally with first name."""
+    counts = stay_guest_label(booking)
+    first = (booking.get("guestFirstName") or "").strip()
+    if counts and first:
+        return f"{counts} - {first}"
+    return counts
+
+
 def outgoing_same_day_checkout_codes(bookings: list[dict]) -> set[str]:
     """Confirmation codes for outgoing stays that share checkout/check-in day."""
     skipped_codes: set[str] = set()

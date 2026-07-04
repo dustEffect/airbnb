@@ -14,7 +14,7 @@ from calendars.booking_helpers import (
     is_weekend_column,
     outgoing_same_day_checkout_codes,
     start_column_for_month,
-    stay_guest_label,
+    stay_guest_display_label,
 )
 
 LISTING_ROW_ORDER = ("T2", "T1", "T0", "EA", "EB")
@@ -66,7 +66,7 @@ def build_occupied_cells(
 
         start = date.fromisoformat(booking["startDate"])
         end = date.fromisoformat(booking["endDate"])
-        guest_label = stay_guest_label(booking)
+        guest_label = stay_guest_display_label(booking)
         confirmation_code = booking.get("confirmationCode")
         current = start
 
