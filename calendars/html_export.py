@@ -238,6 +238,7 @@ main {
   color: #111;
   border-color: rgba(0,0,0,.15);
   background: var(--stay-color);
+  opacity: .8;
 }
 .cell.stay.stay-end,
 .cell.stay-custom.stay-end {
@@ -406,6 +407,7 @@ main {
   --stay-color: #B2A1C7;
   background: var(--stay-color) !important;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  opacity: .8;
 }
 .stay-label-mask {
   position: absolute;
