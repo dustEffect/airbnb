@@ -127,6 +127,13 @@ class TestRenderCalendarHtml:
         assert 'matchMedia("(max-width: 768px)")' in html_text
         assert "runInitialScroll" in html_text
 
+    def test_scroll_today_button_returns_to_current_day(self) -> None:
+        html_text = render_calendar_html(year=date.today().year, bookings=[])
+        assert 'id="scroll-today-btn"' in html_text
+        assert "goToToday" in html_text
+        assert "centerTodayHorizontally" in html_text
+        assert 'aria-label="Ir para hoje"' in html_text
+
     def test_day_number_cells_support_comments(self) -> None:
         html_text = render_calendar_html(year=2026, bookings=[])
         assert day_cell_id(date(2026, 3, 15)) == "dia-20260315"
@@ -216,6 +223,13 @@ class TestRenderCalendarHtml:
         assert january.count('class="cell day-num') == 31
         assert 'id="dia-20260101"' in january
         assert 'grid-row:2;grid-column:5" data-date="20260101" role="button" tabindex="0">1</div>' in january
+
+    def test_listing_labels_match_stay_row_height(self) -> None:
+        html_text = render_calendar_html(year=2026, bookings=[])
+        assert ".cell.listing-label.listing-label-row" in html_text
+        assert 'class="cell listing-label listing-label-row"' in html_text
+        assert 'grid-row:1;grid-column:1"></div>' not in html_text
+        assert ">dia</div>" not in html_text
 
     def test_includes_mobile_friendly_viewport_and_layout(self) -> None:
         html_text = render_calendar_html(year=2026, bookings=[])

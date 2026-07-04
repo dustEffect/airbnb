@@ -46,6 +46,15 @@ _ICON_TRASH = _ICON.format(
 _ICON_X = _ICON.format(paths='<path d="M18 6 6 18"/><path d="m6 6 12 12"/>')
 _ICON_CHECK = _ICON.format(paths='<path d="M20 6 9 17l-5-5"/>')
 _ICON_PLUS = _ICON.format(paths='<path d="M12 5v14"/><path d="M5 12h14"/>')
+_ICON_TODAY = _ICON.format(
+    paths=(
+        '<path d="M8 2v4"/>'
+        '<path d="M16 2v4"/>'
+        '<rect width="18" height="18" x="3" y="4" rx="2"/>'
+        '<path d="M3 10h18"/>'
+        '<circle cx="12" cy="16" r="2.75" stroke="#dc2626"/>'
+    )
+)
 
 _CSS = """
 :root {
@@ -189,7 +198,7 @@ main {
   min-width: 2.5rem;
   font-weight: 700;
   font-size: .75rem;
-  background: #f9fafb;
+  background: rgba(249, 250, 251, 0.8);
   border-color: transparent;
   justify-content: center;
   padding: 0;
@@ -197,6 +206,9 @@ main {
   left: 0;
   z-index: 2;
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+}
+.cell.listing-label.listing-label-row {
+  height: var(--listing-size);
 }
 .cell.listing-row {
   height: var(--listing-size);
@@ -421,6 +433,27 @@ main {
 }
 .custom-stay-add:hover { background: #f3f4f6; }
 .custom-stay-add[hidden] { display: none !important; }
+.scroll-today-btn {
+  position: fixed;
+  z-index: 110;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 2px solid #1a1a1a;
+  background: #fff;
+  color: #1a1a1a;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  touch-action: manipulation;
+}
+.scroll-today-btn:hover { background: #f3f4f6; }
+.scroll-today-btn[hidden] { display: none !important; }
 #custom-stay-guest {
   width: 100%;
   font: inherit;
@@ -636,7 +669,6 @@ def _render_month(
         f"<h2>{html.escape(month_name)}</h2>",
         '<div class="month-scroll">',
         f'<div class="grid" style="{grid_style}">',
-        '<div class="cell listing-label" style="grid-row:1;grid-column:1"></div>',
     ]
 
     for slot_index, col in enumerate(columns):
@@ -647,9 +679,6 @@ def _render_month(
             )
         )
 
-    parts.append(
-        '<div class="cell listing-label" style="grid-row:2;grid-column:1">dia</div>'
-    )
     for slot_index, col in enumerate(columns):
         if col.day is None:
             continue
@@ -670,7 +699,7 @@ def _render_month(
     for row_index, listing in enumerate(LISTING_ROW_ORDER, start=3):
         color = LISTING_COLORS[listing]
         parts.append(
-            f'<div class="cell listing-label" style="color:{color};'
+            f'<div class="cell listing-label listing-label-row" style="color:{color};'
             f'grid-row:{row_index};grid-column:1">{html.escape(listing)}</div>'
         )
         for slot_index, col in enumerate(columns):
@@ -806,6 +835,7 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
     </div>
   </div>
   <button type="button" class="custom-stay-add" id="custom-stay-add" hidden aria-label="Criar estadia">+</button>
+  <button type="button" class="scroll-today-btn" id="scroll-today-btn" title="Ir para hoje" aria-label="Ir para hoje">{_ICON_TODAY}</button>
   <div class="comment-peek" id="comment-peek" hidden role="tooltip">
     <p id="comment-peek-text"></p>
   </div>
@@ -1578,6 +1608,8 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
   }});
   applySavedWeekdayIcons();
 
+  const scrollTodayBtn = document.getElementById("scroll-today-btn");
+
   function markToday() {{
     const now = new Date();
     const y = String(now.getFullYear());
@@ -1587,11 +1619,12 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
     const cell = document.querySelector('.day-num[data-date="' + todayStr + '"]');
     if (cell) {{
       cell.classList.add("is-today");
+    }} else if (scrollTodayBtn) {{
+      scrollTodayBtn.hidden = true;
     }}
   }}
 
-  function scrollTodayIntoCenter() {{
-    if (!window.matchMedia("(max-width: 768px)").matches) return;
+  function centerTodayHorizontally() {{
     const todayCell = document.querySelector(".cell.day-num.is-today");
     if (!todayCell) return;
     const scrollEl = todayCell.closest(".month-scroll");
@@ -1607,8 +1640,12 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
     scrollEl.scrollLeft = Math.max(0, Math.min(target, maxScroll));
   }}
 
-  function scrollToInitialMonth() {{
-    if (window.location.hash) return;
+  function scrollTodayIntoCenter() {{
+    if (!window.matchMedia("(max-width: 768px)").matches) return;
+    centerTodayHorizontally();
+  }}
+
+  function scrollToCurrentMonth(behavior) {{
     const pageYear = Number(document.body.dataset.year);
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -1622,8 +1659,25 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
     }}
     const section = document.getElementById(MONTH_IDS[monthIndex]);
     if (section) {{
-      section.scrollIntoView({{ behavior: "instant", block: "start" }});
+      section.scrollIntoView({{ behavior: behavior, block: "start" }});
     }}
+  }}
+
+  function scrollToInitialMonth() {{
+    if (window.location.hash) return;
+    scrollToCurrentMonth("instant");
+  }}
+
+  function goToToday() {{
+    if (!document.querySelector(".cell.day-num.is-today")) return;
+    scrollToCurrentMonth("smooth");
+    requestAnimationFrame(() => {{
+      requestAnimationFrame(centerTodayHorizontally);
+    }});
+  }}
+
+  if (scrollTodayBtn) {{
+    scrollTodayBtn.addEventListener("click", goToToday);
   }}
 
   function runInitialScroll() {{
