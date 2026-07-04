@@ -84,6 +84,19 @@ header {
   padding: 1rem 1.25rem 1.25rem;
 }
 header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
+.page-title-btn {
+  all: unset;
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  text-align: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
 nav.month-nav {
   position: sticky;
   top: 0;
@@ -833,7 +846,7 @@ def render_calendar_html(
 </head>
 <body data-year="{year}">
   <header>
-    <h1>Mapa de Estadias {year}</h1>
+    <h1><button type="button" class="page-title-btn" id="page-title-btn">Mapa de Estadias {year}</button></h1>
   </header>
   <nav class="month-nav" aria-label="Meses">{nav_links}</nav>
   <main>
@@ -1759,7 +1772,7 @@ def render_calendar_html(
   }}
 
   const saidasBackdrop = document.getElementById("saidas-backdrop");
-  const pageTitle = document.querySelector("header h1");
+  const pageTitle = document.getElementById("page-title-btn");
 
   function openSaidasDialog() {{
     saidasBackdrop.hidden = false;

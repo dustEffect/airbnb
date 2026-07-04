@@ -298,7 +298,7 @@ class TestSaidasModal:
         assert 'id="saidas-title">Saídas</h3>' in html_text
         assert "14 dom. T2" in html_text
         assert "8 seg. T2" not in html_text
-        assert 'querySelector("header h1")' in html_text
+        assert 'id="page-title-btn"' in html_text
         assert 'addEventListener("click", openSaidasDialog)' in html_text
 
     def test_shows_empty_message_when_no_upcoming_checkouts(
