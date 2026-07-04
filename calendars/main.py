@@ -35,6 +35,7 @@ def build_calendar_html(
         DOCS_INDEX.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(html_path, DOCS_INDEX)
         write_web_manifest(DOCS_INDEX.parent / "manifest.webmanifest")
+        (DOCS_INDEX.parent / ".nojekyll").touch()
     return year, html_path
 
 

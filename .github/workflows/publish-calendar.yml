@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: write
+  pages: write
 
 jobs:
   publish:
@@ -85,18 +86,56 @@ jobs:
         run: |
           YEAR="$(date -u +%Y)"
           cp "calendars/templates/calendar-${YEAR}.html" docs/index.html
+          touch docs/.nojekyll
 
       - name: Commit and push calendar
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html
+          git add docs/index.html docs/.nojekyll
           if git diff --staged --quiet; then
             echo "Calendar unchanged; skipping commit."
           else
             git commit -m "Update calendar"
             git push
           fi
+
+      - name: Verify GitHub Pages deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+
+          pages_status="$(gh api "repos/${repo}/pages" --jq .status)"
+          build_status="$(gh api "repos/${repo}/pages/builds/latest" --jq .status)"
+          echo "Pages status: ${pages_status}, latest build: ${build_status}"
+
+          if [ "${pages_status}" = "errored" ] || [ "${build_status}" = "errored" ]; then
+            echo "Pages deployment errored; requesting rebuild..."
+            gh api -X POST "repos/${repo}/pages/builds" >/dev/null
+          fi
+
+          for _ in $(seq 1 60); do
+            pages_status="$(gh api "repos/${repo}/pages" --jq .status)"
+            build_status="$(gh api "repos/${repo}/pages/builds/latest" --jq .status)"
+            echo "Pages status: ${pages_status}, latest build: ${build_status}"
+
+            if [ "${pages_status}" = "built" ] && [ "${build_status}" = "built" ]; then
+              echo "GitHub Pages deployment verified."
+              exit 0
+            fi
+
+            if [ "${build_status}" = "errored" ]; then
+              echo "::error::GitHub Pages build failed."
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          echo "::error::Timed out waiting for GitHub Pages deployment."
+          exit 1
 
       - name: Save Chrome profile
         if: success()
