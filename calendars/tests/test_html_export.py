@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from calendars.calendar_model import LISTING_ROW_ORDER
 from calendars.html_export import (
     day_cell_id,
@@ -276,3 +278,40 @@ class TestRenderCalendarHtml:
         write_calendar_html(year=2026, bookings=bookings, output_path=out)
         assert out.is_file()
         assert "2026" in out.read_text(encoding="utf-8")
+
+
+class TestSaidasModal:
+    def test_embeds_upcoming_checkout_summary(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        class FixedDate(date):
+            @classmethod
+            def today(cls) -> date:
+                return cls(2026, 6, 9)
+
+        monkeypatch.setattr("checkouts.checkouts_format.date", FixedDate)
+        bookings = [
+            _booking(T2, "2026-06-01", "2026-06-08"),
+            _booking(T2, "2026-06-10", "2026-06-14"),
+        ]
+        html_text = render_calendar_html(year=2026, bookings=bookings)
+
+        assert 'id="saidas-backdrop"' in html_text
+        assert 'id="saidas-title">Saídas</h3>' in html_text
+        assert "14 dom. T2" in html_text
+        assert "8 seg. T2" not in html_text
+        assert 'querySelector("header h1")' in html_text
+        assert 'addEventListener("click", openSaidasDialog)' in html_text
+
+    def test_shows_empty_message_when_no_upcoming_checkouts(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class FixedDate(date):
+            @classmethod
+            def today(cls) -> date:
+                return cls(2026, 6, 9)
+
+        monkeypatch.setattr("checkouts.checkouts_format.date", FixedDate)
+        bookings = [_booking(T2, "2026-06-01", "2026-06-08")]
+        html_text = render_calendar_html(year=2026, bookings=bookings)
+
+        assert "Sem saídas agendadas." in html_text
+        assert "8 seg. T2" not in html_text

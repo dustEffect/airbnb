@@ -14,6 +14,7 @@ from checkouts.checkouts_format import (
     _listing_label,
     _next_checkin_for_listing,
     format_checkouts_text,
+    format_upcoming_checkouts_text,
     print_checkouts_diff,
     print_checkouts_diff_from_payload,
     write_checkouts_text,
@@ -215,6 +216,36 @@ class TestFormatCheckoutsText:
         assert "14 dom. T2" in lines
         assert "14 dom. EA" in lines
         assert "14 dom. EB" in lines
+
+
+class TestFormatUpcomingCheckoutsText:
+    def test_includes_only_checkouts_from_tomorrow_onward(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class FixedDate(date):
+            @classmethod
+            def today(cls) -> date:
+                return cls(2026, 6, 9)
+
+        monkeypatch.setattr("checkouts.checkouts_format.date", FixedDate)
+        payload = _payload(
+            _booking(T2, "2026-06-01", "2026-06-08", confirmation_code="past"),
+            _booking(T2, "2026-06-10", "2026-06-14", confirmation_code="future"),
+        )
+        text = format_upcoming_checkouts_text(payload)
+        assert text.splitlines() == ["JUN.", "14 dom. T2"]
+
+    def test_returns_empty_when_no_upcoming_checkouts(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class FixedDate(date):
+            @classmethod
+            def today(cls) -> date:
+                return cls(2026, 6, 9)
+
+        monkeypatch.setattr("checkouts.checkouts_format.date", FixedDate)
+        payload = _payload(_booking(T2, "2026-06-01", "2026-06-08"))
+        assert format_upcoming_checkouts_text(payload) == ""
 
 
 class TestWriteCheckoutsText:

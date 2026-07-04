@@ -12,6 +12,7 @@ from pathlib import Path
 from calendars.booking_helpers import year_from_bookings
 from calendars.html_export import write_calendar_html
 from fetch.run_fetch import add_fetch_arguments, maybe_run_fetch
+from checkouts.checkouts_format import format_upcoming_checkouts_text, write_checkouts_text
 from shared.paths import bookings_json_path, project_root
 from shared.pwa import write_web_manifest
 
@@ -29,8 +30,15 @@ def build_calendar_html(
     data = json.loads(bookings_path.read_text(encoding="utf-8"))
     year = year_from_bookings(data)
     bookings = data.get("bookings", [])
+    write_checkouts_text(bookings_path=bookings_path, print_to_stdout=False)
+    upcoming_checkouts = format_upcoming_checkouts_text(data)
     html_path = output_dir / f"calendar-{year}.html"
-    write_calendar_html(year=year, bookings=bookings, output_path=html_path)
+    write_calendar_html(
+        year=year,
+        bookings=bookings,
+        upcoming_checkouts_text=upcoming_checkouts,
+        output_path=html_path,
+    )
     if output_dir.resolve() == DEFAULT_OUTPUT_DIR.resolve():
         DOCS_INDEX.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(html_path, DOCS_INDEX)

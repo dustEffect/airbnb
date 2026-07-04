@@ -59,3 +59,19 @@ is the whole pipeline.
 
 Reserved for *code* deployment. **Never** use "deploy" to refer to the
 calendar pipeline — say **publish** instead.
+
+## Checkout
+
+The day a guest leaves a listing — the **end date** of a booking.
+_Avoid:_ check-out, departure (unless talking to guests).
+
+## Checkout summary
+
+A plain-text list of checkouts grouped by month (e.g. `JUN.` / `8 seg. EB`),
+produced from `shared/bookings.json`. The canonical formatter lives in
+`checkouts/`.
+
+When shown in the calendar UI, prefer the **upcoming** view: checkouts on
+or after tomorrow only — same date cutoff as `checkouts.sh --diff`, but the
+full formatted rows, not the change diff. In the calendar UI this view is
+labeled **Saídas** (modal title when tapping the page heading).

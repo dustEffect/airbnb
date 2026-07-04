@@ -18,6 +18,7 @@ from calendars.calendar_model import (
 )
 from calendars.booking_helpers import MONTHS_PT
 from calendars.portugal_holidays import portugal_national_holidays
+from checkouts.checkouts_format import format_upcoming_checkouts_text
 from shared.pwa import pwa_icon_url, pwa_manifest_url, pwa_sw_url, PWA_SPLASH_BACKGROUND
 
 HOLIDAY_ICON = "🇵🇹"
@@ -25,6 +26,7 @@ HOLIDAY_BG = "#D4A017"
 HOLIDAY_BORDER = "#A67C00"
 CUSTOM_STAY_COLOR = "#B2A1C7"
 AIRBNB_STAY_URL = "https://www.airbnb.pt/hosting/stay/"
+SAIDAS_EMPTY_MESSAGE = "Sem saídas agendadas."
 
 _ICON = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"'
@@ -313,6 +315,19 @@ main {
   padding: .5rem .6rem;
   border: 1px solid var(--border);
   border-radius: 6px;
+}
+.saidas-dialog {
+  width: min(28rem, 100%);
+}
+.saidas-text {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .875rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: min(60vh, 24rem);
+  overflow: auto;
 }
 .comment-actions {
   display: flex;
@@ -767,9 +782,22 @@ def _initial_month_section_id(year: int) -> str:
     return MONTHS_PT[month_index].lower()
 
 
-def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
+def render_calendar_html(
+    *,
+    year: int,
+    bookings: list[dict],
+    upcoming_checkouts_text: str | None = None,
+) -> str:
     occupied = build_occupied_cells(year, bookings)
     holidays = portugal_national_holidays(year)
+
+    if upcoming_checkouts_text is None:
+        upcoming_checkouts_text = format_upcoming_checkouts_text({"bookings": bookings})
+    saidas_pre = (
+        html.escape(upcoming_checkouts_text.rstrip("\n"))
+        if upcoming_checkouts_text.strip()
+        else html.escape(SAIDAS_EMPTY_MESSAGE)
+    )
 
     nav_links = "".join(
         f'<a href="#{html.escape(name.lower())}">{html.escape(name)}</a>'
@@ -837,6 +865,14 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
         <button type="button" class="icon-btn" id="custom-stay-cancel" title="Cancelar" aria-label="Cancelar">{_ICON_X}</button>
         <button type="button" class="primary icon-btn" id="custom-stay-create" title="Criar estadia" aria-label="Criar estadia">{_ICON_PLUS}</button>
       </div>
+    </div>
+  </div>
+  <div class="comment-backdrop" id="saidas-backdrop" hidden>
+    <div class="comment-dialog saidas-dialog" role="dialog" aria-labelledby="saidas-title">
+      <div class="comment-dialog-header">
+        <h3 id="saidas-title">Saídas</h3>
+      </div>
+      <pre class="saidas-text" id="saidas-text">{saidas_pre}</pre>
     </div>
   </div>
   <button type="button" class="custom-stay-add" id="custom-stay-add" hidden aria-label="Criar estadia">+</button>
@@ -1722,6 +1758,26 @@ def render_calendar_html(*, year: int, bookings: list[dict]) -> str:
     scrollTodayBtn.addEventListener("click", goToToday);
   }}
 
+  const saidasBackdrop = document.getElementById("saidas-backdrop");
+  const pageTitle = document.querySelector("header h1");
+
+  function openSaidasDialog() {{
+    saidasBackdrop.hidden = false;
+    saidasBackdrop.classList.add("open");
+  }}
+
+  function closeSaidasDialog() {{
+    saidasBackdrop.classList.remove("open");
+    saidasBackdrop.hidden = true;
+  }}
+
+  if (pageTitle && saidasBackdrop) {{
+    pageTitle.addEventListener("click", openSaidasDialog);
+    saidasBackdrop.addEventListener("click", (event) => {{
+      if (event.target === saidasBackdrop) closeSaidasDialog();
+    }});
+  }}
+
   function runInitialScroll() {{
     scrollToInitialMonth();
     requestAnimationFrame(() => {{
@@ -1763,10 +1819,15 @@ def write_calendar_html(
     year: int,
     bookings: list[dict],
     output_path: Path,
+    upcoming_checkouts_text: str | None = None,
 ) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
-        render_calendar_html(year=year, bookings=bookings),
+        render_calendar_html(
+            year=year,
+            bookings=bookings,
+            upcoming_checkouts_text=upcoming_checkouts_text,
+        ),
         encoding="utf-8",
     )
     return output_path

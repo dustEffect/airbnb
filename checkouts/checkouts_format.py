@@ -108,7 +108,11 @@ def _format_checkout_line(
     return " ".join(parts)
 
 
-def format_checkouts_text(bookings_payload: dict) -> str:
+def format_checkouts_text(
+    bookings_payload: dict,
+    *,
+    min_checkout_date: date | None = None,
+) -> str:
     bookings = bookings_payload.get("bookings", [])
     checkouts: list[tuple[date, str, str]] = []
 
@@ -118,7 +122,10 @@ def format_checkouts_text(bookings_payload: dict) -> str:
         end_date = booking.get("endDate")
         if not label or not end_date:
             continue
-        checkouts.append((_parse_date(end_date), label, listing_name))
+        checkout_date = _parse_date(end_date)
+        if min_checkout_date is not None and checkout_date < min_checkout_date:
+            continue
+        checkouts.append((checkout_date, label, listing_name))
 
     checkouts.sort(key=lambda item: (item[0], LABEL_ORDER.index(item[1])))
 
@@ -135,6 +142,16 @@ def format_checkouts_text(bookings_payload: dict) -> str:
         )
 
     return "\n".join(lines) + ("\n" if lines else "")
+
+
+def format_upcoming_checkouts_text(
+    bookings_payload: dict,
+    *,
+    from_date: date | None = None,
+) -> str:
+    """Checkout summary for Saídas: full rows from tomorrow onward."""
+    min_date = from_date if from_date is not None else _default_diff_from_date()
+    return format_checkouts_text(bookings_payload, min_checkout_date=min_date)
 
 
 def _print_stdout_section(header: str) -> None:
