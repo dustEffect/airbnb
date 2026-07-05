@@ -10,6 +10,24 @@ from py_vapid import Vapid02 as Vapid
 from pywebpush import WebPushException, webpush
 
 
+def normalize_vapid_subject(raw: str) -> str:
+    """Return a mailto: subject accepted by py_vapid."""
+    subject = raw.strip()
+    if not subject:
+        raise ValueError("Missing VAPID_SUBJECT (e.g. mailto:you@example.com).")
+    if subject.startswith("mailto:"):
+        return subject
+    if "@" in subject and "://" not in subject:
+        return f"mailto:{subject}"
+    raise ValueError(
+        f"Invalid VAPID_SUBJECT {subject!r}; use mailto:you@example.com or you@example.com"
+    )
+
+
+def vapid_claims_from_env() -> dict[str, str]:
+    return {"sub": normalize_vapid_subject(os.environ.get("VAPID_SUBJECT", ""))}
+
+
 def load_vapid_private_key(raw: str) -> str | Vapid:
     """Accept PEM text, a PEM file path, or a base64 DER string."""
     text = raw.strip().replace("\\n", "\n")

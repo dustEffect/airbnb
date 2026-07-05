@@ -16,7 +16,7 @@ from notifications.format import (
     format_morning_notification,
     format_test_notification,
 )
-from notifications.push import send_push_notifications
+from notifications.push import send_push_notifications, vapid_claims_from_env
 
 LISBON = ZoneInfo("Europe/Lisbon")
 
@@ -28,13 +28,6 @@ def _load_subscriptions(raw: str) -> list[dict]:
     if isinstance(parsed, list):
         return parsed
     raise ValueError("PUSH_SUBSCRIPTIONS must be a JSON object or array.")
-
-
-def _vapid_claims() -> dict[str, str]:
-    subject = os.environ.get("VAPID_SUBJECT", "").strip()
-    if not subject:
-        raise ValueError("Missing VAPID_SUBJECT (e.g. mailto:you@example.com).")
-    return {"sub": subject}
 
 
 def _message_for_kind(
@@ -108,11 +101,17 @@ def main() -> None:
         sys.exit(1)
 
     subscriptions = _load_subscriptions(subscriptions_raw)
+    try:
+        claims = vapid_claims_from_env()
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+
     errors = send_push_notifications(
         subscriptions,
         message,
         vapid_private_key=private_key,
-        vapid_claims=_vapid_claims(),
+        vapid_claims=claims,
     )
     if errors:
         for error in errors:

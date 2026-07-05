@@ -90,7 +90,7 @@ Web Push needs **two kinds** of secrets. They come from **different places**:
 |---------------|------------|------------------|
 | `VAPID_PUBLIC_KEY` | Server identity (public half) | **Terminal, once** — see step 1 below |
 | `VAPID_PRIVATE_KEY` | Server identity (private half) | **Terminal, once** — same command; never put this in the app |
-| `VAPID_SUBJECT` | Contact for the push service | You choose, e.g. `mailto:you@example.com` |
+| `VAPID_SUBJECT` | Contact for the push service | Your email (`you@example.com`) or `mailto:you@example.com` |
 | `PUSH_SUBSCRIPTIONS` | One JSON object **per phone** | **PWA button, per device** — see step 4 below |
 
 The calendar's **Ativar notificações** button only helps with `PUSH_SUBSCRIPTIONS`
@@ -118,7 +118,7 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 |--------|-------|
 | `VAPID_PUBLIC_KEY` | Single line from step 1 |
 | `VAPID_PRIVATE_KEY` | Full PEM block from step 1 (including `BEGIN` / `END` lines) |
-| `VAPID_SUBJECT` | `mailto:your@email.com` |
+| `VAPID_SUBJECT` | `you@example.com` or `mailto:you@example.com` |
 | `PUSH_SUBSCRIPTIONS` | Start with `[]` — you fill this in step 4 |
 
 Or via CLI:
