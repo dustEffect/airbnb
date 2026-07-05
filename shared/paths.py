@@ -8,6 +8,7 @@ SHARED_DIR = "shared"
 CHECKOUTS_DIR = "checkouts"
 CALENDARS_DIR = "calendars"
 BOOKINGS_FILENAME = "bookings.json"
+BOOKINGS_SNAPSHOT_FILENAME = "bookings-snapshot.json"
 CHECKOUTS_SUMMARY_FILENAME = "checkouts.txt"
 
 
@@ -21,3 +22,7 @@ def bookings_json_path(root: Path | None = None) -> Path:
 
 def checkouts_summary_path(root: Path | None = None) -> Path:
     return (root or project_root()) / CHECKOUTS_DIR / CHECKOUTS_SUMMARY_FILENAME
+
+
+def bookings_snapshot_path(root: Path | None = None) -> Path:
+    return (root or project_root()) / "docs" / BOOKINGS_SNAPSHOT_FILENAME

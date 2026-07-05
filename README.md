@@ -9,6 +9,7 @@ Personal automation for an Airbnb multicalendar: fetch reservations, format chec
 | `./fetch.sh` | Log into Airbnb and write `shared/bookings.json` |
 | `./checkouts.sh` | Fetch (optional) and write `checkouts/checkouts.txt` |
 | `./calendar.sh` | Fetch (optional) and write `calendars/templates/calendar-{year}.html` |
+| `./notify` (CI) | Send morning/afternoon booking push notifications |
 
 All pipelines share the same bookings file: `shared/bookings.json`.
 
@@ -65,20 +66,62 @@ Each run writes a browser-viewable calendar at `calendars/templates/calendar-{ye
 
 ### Console entry points
 
-After `pip install -e .`, these are also available:
+After `pip install -e .`:
 
 ```bash
 airbnb-fetch
 airbnb-checkouts
 airbnb-calendar
+airbnb-notify morning --snapshot docs/bookings-snapshot.json
+airbnb-vapid-keys
 ```
 
-Or via Python modules:
+## Booking push notifications
+
+Android notifications for today's check-ins (07:00 Lisbon) and
+tomorrow's check-ins and check-outs (17:30 Lisbon in summer). See
+[`docs/adr/0002-booking-push-notifications.md`](docs/adr/0002-booking-push-notifications.md).
+
+### One-time setup
+
+1. Generate VAPID keys:
 
 ```bash
-.venv/bin/python -m fetch.main
-.venv/bin/python -m checkouts.main
-.venv/bin/python -m calendars.main
+.venv/bin/pip install -e .
+.venv/bin/python -m notifications.vapid_keys
+```
+
+2. Add GitHub Actions secrets:
+
+| Secret | Value |
+|--------|-------|
+| `VAPID_PUBLIC_KEY` | Public key from step 1 |
+| `VAPID_PRIVATE_KEY` | Private key from step 1 |
+| `VAPID_SUBJECT` | `mailto:your@email.com` |
+| `PUSH_SUBSCRIPTIONS` | JSON array of push subscriptions (one per phone) |
+
+3. Publish the calendar so the PWA embeds the public key
+   (`publish-calendar.yml` passes `VAPID_PUBLIC_KEY` when building).
+
+4. On each phone: open the installed PWA → **Ativar notificações** →
+   **Subscrever** → grant permission → **Copiar JSON** → add each
+   subscription object to the `PUSH_SUBSCRIPTIONS` array in GitHub
+   secrets.
+
+Example `PUSH_SUBSCRIPTIONS`:
+
+```json
+[
+  {"endpoint": "…", "keys": {"p256dh": "…", "auth": "…"}},
+  {"endpoint": "…", "keys": {"p256dh": "…", "auth": "…"}}
+]
+```
+
+### Manual send (CI)
+
+```bash
+gh workflow run notify-bookings.yml --repo dustEffect/airbnb -f kind=morning
+gh workflow run notify-bookings.yml --repo dustEffect/airbnb -f kind=afternoon
 ```
 
 ## Tests
@@ -93,6 +136,7 @@ Or via Python modules:
 fetch/           Airbnb browser automation and bookings extraction
 checkouts/       Checkout text formatting
 calendars/       HTML stay calendar (`calendars`, not `calendar`, avoids Python stdlib name clash)
+notifications/   Booking push notification formatting and delivery
 shared/          Paths and listing label mapping
 ```
 

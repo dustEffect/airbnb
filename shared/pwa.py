@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 # Bump when icons or manifest splash metadata change (cache-busts URLs).
-PWA_ASSET_VERSION = "7"
-PWA_SW_VERSION = "7"
+PWA_ASSET_VERSION = "8"
+PWA_SW_VERSION = "8"
 
 PWA_MANIFEST_PATH = "/airbnb/manifest.webmanifest"
 PWA_SCOPE = "/airbnb/"
@@ -26,6 +27,10 @@ def pwa_manifest_url() -> str:
 
 def pwa_sw_url() -> str:
     return f"/airbnb/sw.js?v={PWA_SW_VERSION}"
+
+
+def vapid_public_key() -> str:
+    return os.environ.get("VAPID_PUBLIC_KEY", "").strip()
 
 
 def render_web_manifest() -> str:

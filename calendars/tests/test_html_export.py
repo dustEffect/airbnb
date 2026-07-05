@@ -255,14 +255,27 @@ class TestRenderCalendarHtml:
 
     def test_includes_pwa_manifest_and_service_worker(self) -> None:
         html_text = render_calendar_html(year=2026, bookings=[])
-        assert 'rel="manifest" href="/airbnb/manifest.webmanifest?v=7"' in html_text
-        assert "navigator.serviceWorker.register('/airbnb/sw.js?v=7'" in html_text
+        assert 'rel="manifest" href="/airbnb/manifest.webmanifest?v=8"' in html_text
+        assert "navigator.serviceWorker.register('/airbnb/sw.js?v=8'" in html_text
         assert "updateViaCache: \"none\"" in html_text
         assert 'scope: "/airbnb/"' in html_text
         assert 'name="apple-mobile-web-app-capable"' in html_text
-        assert 'href="/airbnb/icons/icon-192.png?v=7" sizes="192x192"' in html_text
-        assert 'href="/airbnb/icons/icon-512.png?v=7" sizes="512x512"' in html_text
+        assert 'href="/airbnb/icons/icon-192.png?v=8" sizes="192x192"' in html_text
+        assert 'href="/airbnb/icons/icon-512.png?v=8" sizes="512x512"' in html_text
         assert 'name="theme-color" content="#D7EBFA"' in html_text
+
+    def test_includes_push_subscribe_controls(self) -> None:
+        html_text = render_calendar_html(year=2026, bookings=[])
+        assert "Ativar notificações" in html_text
+        assert "push-subscribe-btn" in html_text
+        assert "VAPID_PUBLIC_KEY" in html_text
+
+    def test_disables_push_subscribe_when_vapid_key_missing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("VAPID_PUBLIC_KEY", raising=False)
+        html_text = render_calendar_html(year=2026, bookings=[])
+        assert "Notificações não configuradas" in html_text
 
     def test_scrolls_to_current_month_on_load(self) -> None:
         html_text = render_calendar_html(year=date.today().year, bookings=[])

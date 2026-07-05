@@ -13,7 +13,8 @@ from calendars.booking_helpers import year_from_bookings
 from calendars.html_export import write_calendar_html
 from fetch.run_fetch import add_fetch_arguments, maybe_run_fetch
 from checkouts.checkouts_format import format_upcoming_checkouts_text, write_checkouts_text
-from shared.paths import bookings_json_path, project_root
+from notifications.snapshot import write_snapshot
+from shared.paths import bookings_json_path, bookings_snapshot_path, project_root
 from shared.pwa import write_web_manifest
 
 CALENDARS_DIR = Path(__file__).resolve().parent
@@ -43,6 +44,7 @@ def build_calendar_html(
         DOCS_INDEX.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(html_path, DOCS_INDEX)
         write_web_manifest(DOCS_INDEX.parent / "manifest.webmanifest")
+        write_snapshot(bookings_snapshot_path(), data)
         (DOCS_INDEX.parent / ".nojekyll").touch()
     return year, html_path
 

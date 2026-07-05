@@ -21,6 +21,7 @@ jobs:
     env:
       AIRBNB_EMAIL: ${{ secrets.AIRBNB_EMAIL }}
       AIRBNB_PASSWORD: ${{ secrets.AIRBNB_PASSWORD }}
+      VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +93,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html docs/.nojekyll
+          git add docs/index.html docs/bookings-snapshot.json docs/.nojekyll
           if git diff --staged --quiet; then
             echo "Calendar unchanged; skipping commit."
           else

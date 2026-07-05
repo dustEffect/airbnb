@@ -1,0 +1,71 @@
+name: Notify bookings
+
+on:
+  schedule:
+    # 07:00 and 17:30 Europe/Lisbon (WEST, UTC+1) — 06:00 and 16:30 UTC
+    # Afternoon runs 30 min after publish cron (16:00 UTC) so snapshot is fresh.
+    - cron: "0 6 * * *"
+    - cron: "30 16 * * *"
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: Notification to send
+        required: true
+        type: choice
+        options:
+          - morning
+          - afternoon
+
+permissions:
+  contents: read
+
+jobs:
+  morning:
+    if: github.event.schedule == '0 6 * * *' || (github.event_name == 'workflow_dispatch' && inputs.kind == 'morning')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e .
+
+      - name: Send morning notification
+        env:
+          PUSH_SUBSCRIPTIONS: ${{ secrets.PUSH_SUBSCRIPTIONS }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: |
+          .venv/bin/python -m notifications.main morning --snapshot docs/bookings-snapshot.json
+
+  afternoon:
+    if: github.event.schedule == '30 16 * * *' || (github.event_name == 'workflow_dispatch' && inputs.kind == 'afternoon')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e .
+
+      - name: Send afternoon notification
+        env:
+          PUSH_SUBSCRIPTIONS: ${{ secrets.PUSH_SUBSCRIPTIONS }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: |
+          .venv/bin/python -m notifications.main afternoon --snapshot docs/bookings-snapshot.json

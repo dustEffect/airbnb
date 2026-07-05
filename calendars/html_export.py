@@ -19,7 +19,7 @@ from calendars.calendar_model import (
 from calendars.booking_helpers import MONTHS_PT
 from calendars.portugal_holidays import portugal_national_holidays
 from checkouts.checkouts_format import format_upcoming_checkouts_text
-from shared.pwa import pwa_icon_url, pwa_manifest_url, pwa_sw_url, PWA_SPLASH_BACKGROUND
+from shared.pwa import pwa_icon_url, pwa_manifest_url, pwa_sw_url, PWA_SPLASH_BACKGROUND, vapid_public_key
 
 HOLIDAY_ICON = "🇵🇹"
 HOLIDAY_BG = "#D4A017"
@@ -484,6 +484,61 @@ main {
 }
 .scroll-today-btn:hover { background: #f3f4f6; }
 .scroll-today-btn[hidden] { display: none !important; }
+.push-subscribe {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+}
+.push-subscribe-btn {
+  all: unset;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.push-subscribe-btn:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+.push-subscribe-panel {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--bg);
+}
+.push-subscribe-panel[hidden] { display: none; }
+.push-subscribe-panel textarea {
+  width: 100%;
+  min-height: 6rem;
+  margin-top: 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+}
+.push-subscribe-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+.push-subscribe-actions button {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--card);
+  padding: 0.35rem 0.65rem;
+  font: inherit;
+  font-size: 0.8125rem;
+}
+.push-subscribe-actions button.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.push-subscribe-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
 #custom-stay-guest {
   width: 100%;
   font: inherit;
@@ -829,6 +884,8 @@ def render_calendar_html(
     custom_stays_key = _custom_stays_storage_key(year)
     listing_colors_json = json.dumps(LISTING_COLORS)
     month_ids_json = json.dumps([m.lower() for m in MONTHS_PT])
+    vapid_key = vapid_public_key()
+    vapid_key_json = json.dumps(vapid_key)
     return f"""<!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -849,6 +906,19 @@ def render_calendar_html(
 <body data-year="{year}">
   <header>
     <h1><button type="button" class="page-title-btn" id="page-title-btn">Mapa de Estadias {year}</button></h1>
+    <div class="push-subscribe">
+      <button type="button" class="push-subscribe-btn" id="push-subscribe-btn">Ativar notificações</button>
+      <div class="push-subscribe-panel" id="push-subscribe-panel" hidden>
+        <p class="push-subscribe-hint" id="push-subscribe-hint">
+          Copie o JSON abaixo para o secret <code>PUSH_SUBSCRIPTIONS</code> no GitHub (um objeto por telefone).
+        </p>
+        <textarea id="push-subscription-json" readonly hidden></textarea>
+        <div class="push-subscribe-actions">
+          <button type="button" class="primary" id="push-subscribe-enable" hidden>Subscrever</button>
+          <button type="button" id="push-subscription-copy" hidden>Copiar JSON</button>
+        </div>
+      </div>
+    </div>
   </header>
   <nav class="month-nav" aria-label="Meses">{nav_links}</nav>
   <main>
@@ -1814,6 +1884,128 @@ def render_calendar_html(
 
   markToday();
   runInitialScroll();
+}})();
+  </script>
+  <script>
+(function () {{
+  const VAPID_PUBLIC_KEY = {vapid_key_json};
+  const pushSubscribeBtn = document.getElementById("push-subscribe-btn");
+  const pushSubscribePanel = document.getElementById("push-subscribe-panel");
+  const pushSubscribeHint = document.getElementById("push-subscribe-hint");
+  const pushSubscribeEnable = document.getElementById("push-subscribe-enable");
+  const pushSubscriptionJson = document.getElementById("push-subscription-json");
+  const pushSubscriptionCopy = document.getElementById("push-subscription-copy");
+
+  function urlBase64ToUint8Array(base64String) {{
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(base64);
+    const output = new Uint8Array(raw.length);
+    for (let index = 0; index < raw.length; index += 1) {{
+      output[index] = raw.charCodeAt(index);
+    }}
+    return output;
+  }}
+
+  function subscriptionToJson(subscription) {{
+    const json = subscription.toJSON();
+    return JSON.stringify({{
+      endpoint: json.endpoint,
+      keys: json.keys,
+    }}, null, 2);
+  }}
+
+  async function ensureServiceWorker() {{
+    if (!("serviceWorker" in navigator)) {{
+      throw new Error("Service worker indisponível.");
+    }}
+    return navigator.serviceWorker.ready;
+  }}
+
+  async function refreshPushSubscription() {{
+    const registration = await ensureServiceWorker();
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {{
+      return null;
+    }}
+    pushSubscriptionJson.value = subscriptionToJson(subscription);
+    pushSubscriptionJson.hidden = false;
+    pushSubscriptionCopy.hidden = false;
+    pushSubscribeHint.textContent =
+      "Subscrição ativa. Copie o JSON para PUSH_SUBSCRIPTIONS no GitHub.";
+    return subscription;
+  }}
+
+  async function subscribeToPush() {{
+    const registration = await ensureServiceWorker();
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {{
+      throw new Error("Permissão de notificações negada.");
+    }}
+    const subscription = await registration.pushManager.subscribe({{
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    }});
+    pushSubscriptionJson.value = subscriptionToJson(subscription);
+    pushSubscriptionJson.hidden = false;
+    pushSubscriptionCopy.hidden = false;
+    pushSubscribeHint.textContent =
+      "Subscrição criada. Copie o JSON para PUSH_SUBSCRIPTIONS no GitHub.";
+    return subscription;
+  }}
+
+  function initPushSubscribe() {{
+    if (!pushSubscribeBtn) {{
+      return;
+    }}
+    const pushAvailable =
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window;
+    if (!pushAvailable) {{
+      pushSubscribeBtn.disabled = true;
+      pushSubscribeBtn.textContent = "Notificações indisponíveis";
+      return;
+    }}
+    if (!VAPID_PUBLIC_KEY) {{
+      pushSubscribeBtn.disabled = true;
+      pushSubscribeBtn.textContent = "Notificações não configuradas";
+      return;
+    }}
+
+    pushSubscribeBtn.addEventListener("click", () => {{
+      const open = !pushSubscribePanel.hidden;
+      pushSubscribePanel.hidden = open;
+    }});
+
+    pushSubscribeEnable.hidden = false;
+    pushSubscribeEnable.addEventListener("click", () => {{
+      subscribeToPush().catch((error) => {{
+        window.alert(error.message || "Não foi possível subscrever.");
+      }});
+    }});
+
+    pushSubscriptionCopy.addEventListener("click", async () => {{
+      const text = pushSubscriptionJson.value;
+      if (!text) {{
+        return;
+      }}
+      try {{
+        await navigator.clipboard.writeText(text);
+        pushSubscriptionCopy.textContent = "Copiado";
+        window.setTimeout(() => {{
+          pushSubscriptionCopy.textContent = "Copiar JSON";
+        }}, 1500);
+      }} catch (_error) {{
+        pushSubscriptionJson.focus();
+        pushSubscriptionJson.select();
+      }}
+    }});
+
+    refreshPushSubscription().catch(() => {{}});
+  }}
+
+  initPushSubscribe();
 }})();
   </script>
   <script>

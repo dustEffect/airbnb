@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "playwright>=1.49.0,<2",
+    "pywebpush>=2.0.0,<3",
     "python-dotenv>=1.0.0,<2",
     "pytest>=8.0.0,<9",
 ]
@@ -18,14 +19,16 @@ dependencies = [
 airbnb-fetch = "fetch.main:main"
 airbnb-checkouts = "checkouts.main:main"
 airbnb-calendar = "calendars.main:main"
+airbnb-notify = "notifications.main:main"
+airbnb-vapid-keys = "notifications.vapid_keys:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0,<9"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["fetch*", "checkouts*", "calendars*", "shared*"]
+include = ["fetch*", "checkouts*", "calendars*", "notifications*", "shared*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["fetch/tests", "checkouts/tests", "calendars/tests"]
+testpaths = ["fetch/tests", "checkouts/tests", "calendars/tests", "notifications/tests"]
