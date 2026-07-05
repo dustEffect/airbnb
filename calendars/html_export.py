@@ -910,7 +910,9 @@ def render_calendar_html(
       <button type="button" class="push-subscribe-btn" id="push-subscribe-btn">Ativar notificações</button>
       <div class="push-subscribe-panel" id="push-subscribe-panel" hidden>
         <p class="push-subscribe-hint" id="push-subscribe-hint">
-          Copie o JSON abaixo para o secret <code>PUSH_SUBSCRIPTIONS</code> no GitHub (um objeto por telefone).
+          Subscreva este telefone e copie o JSON para o secret
+          <code>PUSH_SUBSCRIPTIONS</code> no GitHub (um objeto por telefone).
+          As chaves VAPID geram-se no computador com <code>airbnb-vapid-keys</code>.
         </p>
         <textarea id="push-subscription-json" readonly hidden></textarea>
         <div class="push-subscribe-actions">

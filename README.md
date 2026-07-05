@@ -82,40 +82,100 @@ Android notifications for today's check-ins (07:00 Lisbon) and
 tomorrow's check-ins and check-outs (17:30 Lisbon in summer). See
 [`docs/adr/0002-booking-push-notifications.md`](docs/adr/0002-booking-push-notifications.md).
 
-### One-time setup
+### What goes where
 
-1. Generate VAPID keys:
+Web Push needs **two kinds** of secrets. They come from **different places**:
+
+| GitHub secret | What it is | Where you get it |
+|---------------|------------|------------------|
+| `VAPID_PUBLIC_KEY` | Server identity (public half) | **Terminal, once** — see step 1 below |
+| `VAPID_PRIVATE_KEY` | Server identity (private half) | **Terminal, once** — same command; never put this in the app |
+| `VAPID_SUBJECT` | Contact for the push service | You choose, e.g. `mailto:you@example.com` |
+| `PUSH_SUBSCRIPTIONS` | One JSON object **per phone** | **PWA button, per device** — see step 4 below |
+
+The calendar's **Ativar notificações** button only helps with `PUSH_SUBSCRIPTIONS`
+(phone subscriptions). It does **not** generate VAPID keys — the private key must
+stay off the phone and out of the browser.
+
+### Setup (one time + per phone)
+
+#### 1. Generate VAPID keys (laptop, once)
+
+On your computer — not in the PWA:
 
 ```bash
 .venv/bin/pip install -e .
-.venv/bin/python -m notifications.vapid_keys
+airbnb-vapid-keys
 ```
 
-2. Add GitHub Actions secrets:
+Copy the printed `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (multi-line PEM is fine).
+
+#### 2. Add GitHub Actions secrets
+
+Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
 
 | Secret | Value |
 |--------|-------|
-| `VAPID_PUBLIC_KEY` | Public key from step 1 |
-| `VAPID_PRIVATE_KEY` | Private key from step 1 |
+| `VAPID_PUBLIC_KEY` | Single line from step 1 |
+| `VAPID_PRIVATE_KEY` | Full PEM block from step 1 (including `BEGIN` / `END` lines) |
 | `VAPID_SUBJECT` | `mailto:your@email.com` |
-| `PUSH_SUBSCRIPTIONS` | JSON array of push subscriptions (one per phone) |
+| `PUSH_SUBSCRIPTIONS` | Start with `[]` — you fill this in step 4 |
 
-3. Publish the calendar so the PWA embeds the public key
-   (`publish-calendar.yml` passes `VAPID_PUBLIC_KEY` when building).
+Or via CLI:
 
-4. On each phone: open the installed PWA → **Ativar notificações** →
-   **Subscrever** → grant permission → **Copiar JSON** → add each
-   subscription object to the `PUSH_SUBSCRIPTIONS` array in GitHub
-   secrets.
+```bash
+gh secret set VAPID_PUBLIC_KEY --repo dustEffect/airbnb
+gh secret set VAPID_PRIVATE_KEY --repo dustEffect/airbnb
+gh secret set VAPID_SUBJECT --repo dustEffect/airbnb
+gh secret set PUSH_SUBSCRIPTIONS --repo dustEffect/airbnb --body '[]'
+```
 
-Example `PUSH_SUBSCRIPTIONS`:
+#### 3. Publish the calendar (embeds the public key)
+
+The publish workflow passes `VAPID_PUBLIC_KEY` into the calendar build so the PWA
+can subscribe. Run it once after step 2:
+
+```bash
+gh workflow run publish-calendar.yml --repo dustEffect/airbnb
+```
+
+Wait until the workflow finishes and GitHub Pages serves the new HTML. Until this
+runs, the PWA shows **Notificações não configuradas** and subscribe is disabled.
+
+#### 4. Register each phone (PWA button)
+
+Repeat on **each** Android phone:
+
+1. Open the installed PWA (**Mapa de Estadias** from the home screen — not only a browser tab).
+2. Tap **Ativar notificações** under the page title.
+3. Tap **Subscrever** and allow notifications when Android asks.
+4. Tap **Copiar JSON** — this is one phone's subscription, **not** a VAPID key.
+5. In GitHub, edit `PUSH_SUBSCRIPTIONS`: add the copied object to the JSON array.
+
+Example after registering two phones:
 
 ```json
 [
-  {"endpoint": "…", "keys": {"p256dh": "…", "auth": "…"}},
-  {"endpoint": "…", "keys": {"p256dh": "…", "auth": "…"}}
+  {
+    "endpoint": "https://fcm.googleapis.com/fcm/send/…",
+    "keys": { "p256dh": "…", "auth": "…" }
+  },
+  {
+    "endpoint": "https://fcm.googleapis.com/fcm/send/…",
+    "keys": { "p256dh": "…", "auth": "…" }
+  }
 ]
 ```
+
+Re-copy and update GitHub only if you reinstall the PWA or revoke notification permission on that phone.
+
+#### 5. Verify
+
+```bash
+gh workflow run notify-bookings.yml --repo dustEffect/airbnb -f kind=morning
+```
+
+If there are check-ins today, both phones should receive a notification. Empty days send nothing.
 
 ### Manual send (CI)
 
