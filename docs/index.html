@@ -52,28 +52,6 @@ header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-nav.month-nav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  flex-wrap: wrap;
-  gap: .35rem;
-  padding: .6rem 1rem;
-  background: var(--nav-bg);
-  box-shadow: var(--nav-shadow);
-  border-bottom: 1px solid var(--border);
-  -webkit-overflow-scrolling: touch;
-}
-nav.month-nav a {
-  color: #2563eb;
-  text-decoration: none;
-  font-size: .8rem;
-  padding: .2rem .45rem;
-  border-radius: 4px;
-  flex: 0 0 auto;
-}
-nav.month-nav a:hover { background: #eff6ff; }
 main {
   padding: 1rem;
   max-width: 1400px;
@@ -440,7 +418,8 @@ main {
 .scroll-today-btn:hover { background: #f3f4f6; }
 .scroll-today-btn[hidden] { display: none !important; }
 .push-subscribe {
-  margin-top: 0.75rem;
+  margin: 1.5rem 1.25rem 2rem;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   font-size: 0.875rem;
 }
 .push-subscribe-btn {
@@ -512,22 +491,6 @@ main {
   }
 }
 @media (max-width: 768px) {
-  nav.month-nav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: .45rem;
-    padding: .55rem max(.75rem, env(safe-area-inset-left));
-    scroll-snap-type: x proximity;
-  }
-  nav.month-nav a {
-    font-size: .85rem;
-    padding: .45rem .7rem;
-    min-height: 2.25rem;
-    display: inline-flex;
-    align-items: center;
-    background: #f3f4f6;
-    scroll-snap-align: start;
-  }
   header {
     padding: .85rem max(.85rem, env(safe-area-inset-left))
       1rem max(.85rem, env(safe-area-inset-right));
@@ -598,23 +561,7 @@ main {
 <body data-year="2026">
   <header>
     <h1><button type="button" class="page-title-btn" id="page-title-btn">Mapa de Estadias 2026</button></h1>
-    <div class="push-subscribe">
-      <button type="button" class="push-subscribe-btn" id="push-subscribe-btn">Ativar notificações</button>
-      <div class="push-subscribe-panel" id="push-subscribe-panel" hidden>
-        <p class="push-subscribe-hint" id="push-subscribe-hint">
-          Subscreva este telefone e copie o JSON para o secret
-          <code>PUSH_SUBSCRIPTIONS</code> no GitHub (um objeto por telefone).
-          As chaves VAPID geram-se no computador com <code>airbnb-vapid-keys</code>.
-        </p>
-        <textarea id="push-subscription-json" readonly hidden></textarea>
-        <div class="push-subscribe-actions">
-          <button type="button" class="primary" id="push-subscribe-enable" hidden>Subscrever</button>
-          <button type="button" id="push-subscription-copy" hidden>Copiar JSON</button>
-        </div>
-      </div>
-    </div>
   </header>
-  <nav class="month-nav" aria-label="Meses"><a href="#janeiro">Janeiro</a><a href="#fevereiro">Fevereiro</a><a href="#março">Março</a><a href="#abril">Abril</a><a href="#maio">Maio</a><a href="#junho">Junho</a><a href="#julho">Julho</a><a href="#agosto">Agosto</a><a href="#setembro">Setembro</a><a href="#outubro">Outubro</a><a href="#novembro">Novembro</a><a href="#dezembro">Dezembro</a></nav>
   <main>
 <section class="month-card" id="janeiro">
 <h2>Janeiro</h2>
@@ -3395,6 +3342,21 @@ main {
 </div>
 </section>
   </main>
+  <div class="push-subscribe">
+    <button type="button" class="push-subscribe-btn" id="push-subscribe-btn">Ativar notificações</button>
+    <div class="push-subscribe-panel" id="push-subscribe-panel" hidden>
+      <p class="push-subscribe-hint" id="push-subscribe-hint">
+        Subscreva este telefone e copie o JSON para o secret
+        <code>PUSH_SUBSCRIPTIONS</code> no GitHub (um objeto por telefone).
+        As chaves VAPID geram-se no computador com <code>airbnb-vapid-keys</code>.
+      </p>
+      <textarea id="push-subscription-json" readonly hidden></textarea>
+      <div class="push-subscribe-actions">
+        <button type="button" class="primary" id="push-subscribe-enable" hidden>Subscrever</button>
+        <button type="button" id="push-subscription-copy" hidden>Copiar JSON</button>
+      </div>
+    </div>
+  </div>
   <div class="comment-backdrop" id="comment-backdrop" hidden>
     <div class="comment-dialog" role="dialog" aria-labelledby="comment-title">
       <div class="comment-dialog-header">
