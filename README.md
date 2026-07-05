@@ -147,7 +147,7 @@ runs, the PWA shows **Notificações não configuradas** and subscribe is disabl
 Repeat on **each** Android phone:
 
 1. Open the installed PWA (**Mapa de Estadias** from the home screen — not only a browser tab).
-2. Tap **Ativar notificações** under the page title.
+2. Scroll to the bottom of the calendar and tap **Ativar notificações**.
 3. Tap **Subscrever** and allow notifications when Android asks.
 4. Tap **Copiar JSON** — this is one phone's subscription, **not** a VAPID key.
 5. In GitHub, edit `PUSH_SUBSCRIPTIONS`: add the copied object to the JSON array.

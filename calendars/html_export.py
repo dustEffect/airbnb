@@ -97,28 +97,6 @@ header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-nav.month-nav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  flex-wrap: wrap;
-  gap: .35rem;
-  padding: .6rem 1rem;
-  background: var(--nav-bg);
-  box-shadow: var(--nav-shadow);
-  border-bottom: 1px solid var(--border);
-  -webkit-overflow-scrolling: touch;
-}
-nav.month-nav a {
-  color: #2563eb;
-  text-decoration: none;
-  font-size: .8rem;
-  padding: .2rem .45rem;
-  border-radius: 4px;
-  flex: 0 0 auto;
-}
-nav.month-nav a:hover { background: #eff6ff; }
 main {
   padding: 1rem;
   max-width: 1400px;
@@ -485,7 +463,8 @@ main {
 .scroll-today-btn:hover { background: #f3f4f6; }
 .scroll-today-btn[hidden] { display: none !important; }
 .push-subscribe {
-  margin-top: 0.75rem;
+  margin: 1.5rem 1.25rem 2rem;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   font-size: 0.875rem;
 }
 .push-subscribe-btn {
@@ -557,22 +536,6 @@ main {
   }
 }
 @media (max-width: 768px) {
-  nav.month-nav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: .45rem;
-    padding: .55rem max(.75rem, env(safe-area-inset-left));
-    scroll-snap-type: x proximity;
-  }
-  nav.month-nav a {
-    font-size: .85rem;
-    padding: .45rem .7rem;
-    min-height: 2.25rem;
-    display: inline-flex;
-    align-items: center;
-    background: #f3f4f6;
-    scroll-snap-align: start;
-  }
   header {
     padding: .85rem max(.85rem, env(safe-area-inset-left))
       1rem max(.85rem, env(safe-area-inset-right));
@@ -869,11 +832,6 @@ def render_calendar_html(
         else html.escape(SAIDAS_EMPTY_MESSAGE)
     )
 
-    nav_links = "".join(
-        f'<a href="#{html.escape(name.lower())}">{html.escape(name)}</a>'
-        for name in MONTHS_PT
-    )
-
     months_html = "\n".join(
         _render_month(year, month, name, occupied, holidays)
         for month, name in enumerate(MONTHS_PT, start=1)
@@ -906,26 +864,25 @@ def render_calendar_html(
 <body data-year="{year}">
   <header>
     <h1><button type="button" class="page-title-btn" id="page-title-btn">Mapa de Estadias {year}</button></h1>
-    <div class="push-subscribe">
-      <button type="button" class="push-subscribe-btn" id="push-subscribe-btn">Ativar notificações</button>
-      <div class="push-subscribe-panel" id="push-subscribe-panel" hidden>
-        <p class="push-subscribe-hint" id="push-subscribe-hint">
-          Subscreva este telefone e copie o JSON para o secret
-          <code>PUSH_SUBSCRIPTIONS</code> no GitHub (um objeto por telefone).
-          As chaves VAPID geram-se no computador com <code>airbnb-vapid-keys</code>.
-        </p>
-        <textarea id="push-subscription-json" readonly hidden></textarea>
-        <div class="push-subscribe-actions">
-          <button type="button" class="primary" id="push-subscribe-enable" hidden>Subscrever</button>
-          <button type="button" id="push-subscription-copy" hidden>Copiar JSON</button>
-        </div>
-      </div>
-    </div>
   </header>
-  <nav class="month-nav" aria-label="Meses">{nav_links}</nav>
   <main>
 {months_html}
   </main>
+  <div class="push-subscribe">
+    <button type="button" class="push-subscribe-btn" id="push-subscribe-btn">Ativar notificações</button>
+    <div class="push-subscribe-panel" id="push-subscribe-panel" hidden>
+      <p class="push-subscribe-hint" id="push-subscribe-hint">
+        Subscreva este telefone e copie o JSON para o secret
+        <code>PUSH_SUBSCRIPTIONS</code> no GitHub (um objeto por telefone).
+        As chaves VAPID geram-se no computador com <code>airbnb-vapid-keys</code>.
+      </p>
+      <textarea id="push-subscription-json" readonly hidden></textarea>
+      <div class="push-subscribe-actions">
+        <button type="button" class="primary" id="push-subscribe-enable" hidden>Subscrever</button>
+        <button type="button" id="push-subscription-copy" hidden>Copiar JSON</button>
+      </div>
+    </div>
+  </div>
   <div class="comment-backdrop" id="comment-backdrop" hidden>
     <div class="comment-dialog" role="dialog" aria-labelledby="comment-title">
       <div class="comment-dialog-header">
