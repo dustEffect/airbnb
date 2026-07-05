@@ -1,4 +1,467 @@
 {
-  "generatedAt": null,
-  "bookings": []
+  "generatedAt": "2026-07-05",
+  "bookings": [
+    {
+      "listing": "EB",
+      "startDate": "2025-12-27",
+      "endDate": "2026-01-03",
+      "guestFirstName": "Mirko"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2025-12-30",
+      "endDate": "2026-01-02",
+      "guestFirstName": "Melissa"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-03-06",
+      "endDate": "2026-03-14",
+      "guestFirstName": "Barbara"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-03-07",
+      "endDate": "2026-03-14",
+      "guestFirstName": "Manuel"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-03-14",
+      "endDate": "2026-03-17",
+      "guestFirstName": "Christian"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-03-16",
+      "endDate": "2026-03-21",
+      "guestFirstName": "Marion"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-03-27",
+      "endDate": "2026-04-03",
+      "guestFirstName": "Diana"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-03-28",
+      "endDate": "2026-04-01",
+      "guestFirstName": "Jeanne"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-03-28",
+      "endDate": "2026-04-03",
+      "guestFirstName": "Juan"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-03-30",
+      "endDate": "2026-04-06",
+      "guestFirstName": "Jeananne"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-04-01",
+      "endDate": "2026-04-04",
+      "guestFirstName": "Arthur"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-04-02",
+      "endDate": "2026-04-09",
+      "guestFirstName": "Elizabeth"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-04-04",
+      "endDate": "2026-04-06",
+      "guestFirstName": "Ruben"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-04-06",
+      "endDate": "2026-04-10",
+      "guestFirstName": "Marie"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-04-06",
+      "endDate": "2026-04-12",
+      "guestFirstName": "Bruno"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-04-08",
+      "endDate": "2026-04-12",
+      "guestFirstName": "Lewis"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-04-12",
+      "endDate": "2026-04-16",
+      "guestFirstName": "Marie"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-04-13",
+      "endDate": "2026-04-20",
+      "guestFirstName": "Liam"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-04-14",
+      "endDate": "2026-04-18",
+      "guestFirstName": "William"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-04-15",
+      "endDate": "2026-04-20",
+      "guestFirstName": "Vivi"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-04-19",
+      "endDate": "2026-04-22",
+      "guestFirstName": "Alexandre"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-04-25",
+      "endDate": "2026-05-02",
+      "guestFirstName": "Gárdos"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-04-25",
+      "endDate": "2026-05-01",
+      "guestFirstName": "James"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-04-26",
+      "endDate": "2026-05-02",
+      "guestFirstName": "Talhia"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-04-27",
+      "endDate": "2026-05-05",
+      "guestFirstName": "Chris"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-05-03",
+      "endDate": "2026-05-09",
+      "guestFirstName": "Catherine"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-05-04",
+      "endDate": "2026-05-08",
+      "guestFirstName": "Alex"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-05-05",
+      "endDate": "2026-05-08",
+      "guestFirstName": "Laurent"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-05-06",
+      "endDate": "2026-05-10",
+      "guestFirstName": "Josh"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-05-09",
+      "endDate": "2026-05-15",
+      "guestFirstName": "Laurence"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-05-13",
+      "endDate": "2026-05-18",
+      "guestFirstName": "Lily"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-05-14",
+      "endDate": "2026-05-20",
+      "guestFirstName": "Henri-Julien"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-05-15",
+      "endDate": "2026-05-19",
+      "guestFirstName": "Emma"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-05-15",
+      "endDate": "2026-05-22",
+      "guestFirstName": "Troy"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-05-16",
+      "endDate": "2026-05-22",
+      "guestFirstName": "Fabiano"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-05-20",
+      "endDate": "2026-05-25",
+      "guestFirstName": "Alessandro"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-05-21",
+      "endDate": "2026-05-25",
+      "guestFirstName": "Nik"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-05-24",
+      "endDate": "2026-05-28",
+      "guestFirstName": "Joana"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-05-25",
+      "endDate": "2026-05-31",
+      "guestFirstName": "Luka"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-05-28",
+      "endDate": "2026-06-04",
+      "guestFirstName": "Maria"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-05-30",
+      "endDate": "2026-06-04",
+      "guestFirstName": "Franziska"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-05-30",
+      "endDate": "2026-06-04",
+      "guestFirstName": "Cornelia"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-06-04",
+      "endDate": "2026-06-08",
+      "guestFirstName": "Ibrokhim"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-06-05",
+      "endDate": "2026-06-08",
+      "guestFirstName": "선혜"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-06-05",
+      "endDate": "2026-06-11",
+      "guestFirstName": "JOrdan"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-06-06",
+      "endDate": "2026-06-09",
+      "guestFirstName": "Toñi"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-06-09",
+      "endDate": "2026-06-14",
+      "guestFirstName": "Kevin"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-06-10",
+      "endDate": "2026-06-14",
+      "guestFirstName": "Johanna"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-06-10",
+      "endDate": "2026-06-14",
+      "guestFirstName": "Nicolas"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-06-12",
+      "endDate": "2026-06-19",
+      "guestFirstName": "Sil"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-06-13",
+      "endDate": "2026-06-17",
+      "guestFirstName": "Leander"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-06-16",
+      "endDate": "2026-06-20",
+      "guestFirstName": "Elodie"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-06-17",
+      "endDate": "2026-06-20",
+      "guestFirstName": "Jessica"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-06-20",
+      "endDate": "2026-07-04",
+      "guestFirstName": "Rafael"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-06-20",
+      "endDate": "2026-06-27",
+      "guestFirstName": "Laura Elena"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-06-21",
+      "endDate": "2026-06-30",
+      "guestFirstName": "Marlon"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-06-22",
+      "endDate": "2026-06-25",
+      "guestFirstName": "Pierre-Luc"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-06-23",
+      "endDate": "2026-06-26",
+      "guestFirstName": "Polina"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-06-27",
+      "endDate": "2026-07-01",
+      "guestFirstName": "Imogen"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-06-29",
+      "endDate": "2026-07-03",
+      "guestFirstName": "경원"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-07-02",
+      "endDate": "2026-07-08",
+      "guestFirstName": "Dajana"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-07-03",
+      "endDate": "2026-07-07",
+      "guestFirstName": "Craig"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-07-04",
+      "endDate": "2026-07-11",
+      "guestFirstName": "Martijn"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-07-07",
+      "endDate": "2026-07-13",
+      "guestFirstName": "Stefánia"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-07-11",
+      "endDate": "2026-07-18",
+      "guestFirstName": "Jerome"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-07-12",
+      "endDate": "2026-07-17",
+      "guestFirstName": "Kristine"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-07-13",
+      "endDate": "2026-08-01",
+      "guestFirstName": "Elisabeth"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-07-17",
+      "endDate": "2026-07-24",
+      "guestFirstName": "Marie"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-07-21",
+      "endDate": "2026-07-26",
+      "guestFirstName": "Kathryn Jane"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-07-24",
+      "endDate": "2026-08-21",
+      "guestFirstName": "Nicole"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-07-29",
+      "endDate": "2026-08-02",
+      "guestFirstName": "Sajid"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-08-08",
+      "endDate": "2026-08-12",
+      "guestFirstName": "Izaskun"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-08-21",
+      "endDate": "2026-08-25",
+      "guestFirstName": "Lyudmil"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-08-30",
+      "endDate": "2026-09-04",
+      "guestFirstName": "Beth"
+    },
+    {
+      "listing": "T1",
+      "startDate": "2026-09-01",
+      "endDate": "2026-09-09",
+      "guestFirstName": "Sylvie"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-09-07",
+      "endDate": "2026-09-11",
+      "guestFirstName": "Dandy"
+    },
+    {
+      "listing": "EB",
+      "startDate": "2026-09-08",
+      "endDate": "2026-09-12",
+      "guestFirstName": "Anika"
+    }
+  ]
 }
