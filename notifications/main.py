@@ -11,7 +11,11 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from notifications.format import format_afternoon_notification, format_morning_notification
+from notifications.format import (
+    format_afternoon_notification,
+    format_morning_notification,
+    format_test_notification,
+)
 from notifications.push import send_push_notifications
 
 LISBON = ZoneInfo("Europe/Lisbon")
@@ -33,6 +37,22 @@ def _vapid_claims() -> dict[str, str]:
     return {"sub": subject}
 
 
+def _message_for_kind(
+    kind: str,
+    *,
+    snapshot: dict | None,
+    on_date: date,
+    now: datetime,
+) -> dict[str, str] | None:
+    if kind == "test":
+        return format_test_notification(now=now)
+    if snapshot is None:
+        raise ValueError("snapshot is required for morning and afternoon notifications.")
+    if kind == "morning":
+        return format_morning_notification(snapshot, on_date=on_date)
+    return format_afternoon_notification(snapshot, on_date=on_date)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m notifications.main",
@@ -42,14 +62,17 @@ def main() -> None:
     )
     parser.add_argument(
         "kind",
-        choices=("morning", "afternoon"),
-        help="morning = today's check-ins; afternoon = tomorrow's check-ins and check-outs",
+        choices=("morning", "afternoon", "test"),
+        help=(
+            "morning = today's check-ins; afternoon = tomorrow's check-ins and "
+            "check-outs; test = fixed test message"
+        ),
     )
     parser.add_argument(
         "--snapshot",
         type=Path,
-        required=True,
-        help="Path to bookings-snapshot.json committed by publish CI",
+        default=None,
+        help="Path to bookings-snapshot.json (not required for test)",
     )
     parser.add_argument(
         "--date",
@@ -60,17 +83,17 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if not args.snapshot.is_file():
-        print(f"Missing snapshot: {args.snapshot}", file=sys.stderr)
-        sys.exit(1)
+    now = datetime.now(LISBON)
+    on_date = args.date or now.date()
+    snapshot: dict | None = None
+    if args.kind != "test":
+        if args.snapshot is None or not args.snapshot.is_file():
+            path = args.snapshot or Path("docs/bookings-snapshot.json")
+            print(f"Missing snapshot: {path}", file=sys.stderr)
+            sys.exit(1)
+        snapshot = json.loads(args.snapshot.read_text(encoding="utf-8"))
 
-    on_date = args.date or datetime.now(LISBON).date()
-    snapshot = json.loads(args.snapshot.read_text(encoding="utf-8"))
-    if args.kind == "morning":
-        message = format_morning_notification(snapshot, on_date=on_date)
-    else:
-        message = format_afternoon_notification(snapshot, on_date=on_date)
-
+    message = _message_for_kind(args.kind, snapshot=snapshot, on_date=on_date, now=now)
     if message is None:
         print(f"No {args.kind} notification for {on_date.isoformat()}; skipping.")
         return

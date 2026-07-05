@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
-from notifications.format import format_afternoon_notification, format_morning_notification
+from notifications.format import (
+    format_afternoon_notification,
+    format_morning_notification,
+    format_test_notification,
+)
 
 T0 = "Estúdio Renovado c/ metro à porta"
 T1 = "T1 Renovado c/ metro à porta"
@@ -99,3 +104,14 @@ class TestAfternoonNotification:
     def test_returns_none_when_tomorrow_is_empty(self) -> None:
         snapshot = _snapshot(_entry(T1, "2026-07-08", "2026-07-12"))
         assert format_afternoon_notification(snapshot, on_date=date(2026, 7, 5)) is None
+
+
+class TestTestNotification:
+    def test_always_returns_fixed_message(self) -> None:
+        now = datetime(2026, 7, 5, 14, 30, tzinfo=ZoneInfo("Europe/Lisbon"))
+        result = format_test_notification(now=now)
+        assert result == {
+            "title": "Teste",
+            "body": "Notificação de teste — 2026-07-05 14:30 (Lisboa)",
+            "url": "/airbnb/",
+        }

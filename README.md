@@ -171,15 +171,24 @@ Re-copy and update GitHub only if you reinstall the PWA or revoke notification p
 
 #### 5. Verify
 
+Send a test notification (no bookings required):
+
+```bash
+gh workflow run notify-bookings.yml --repo dustEffect/airbnb -f kind=test
+```
+
+Or test the real formatters when there are check-ins today:
+
 ```bash
 gh workflow run notify-bookings.yml --repo dustEffect/airbnb -f kind=morning
 ```
 
-If there are check-ins today, both phones should receive a notification. Empty days send nothing.
+Empty mornings/afternoons send nothing; the test kind always sends.
 
 ### Manual send (CI)
 
 ```bash
+gh workflow run notify-bookings.yml --repo dustEffect/airbnb -f kind=test
 gh workflow run notify-bookings.yml --repo dustEffect/airbnb -f kind=morning
 gh workflow run notify-bookings.yml --repo dustEffect/airbnb -f kind=afternoon
 ```

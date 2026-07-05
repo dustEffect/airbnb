@@ -9,6 +9,16 @@ from shared.listing_labels import LABEL_ORDER
 NOTIFICATION_URL = "/airbnb/"
 
 
+def format_test_notification(*, now: datetime) -> dict[str, str]:
+    """Fixed test message; always sent (never skipped)."""
+    stamp = now.strftime("%Y-%m-%d %H:%M")
+    return {
+        "title": "Teste",
+        "body": f"Notificação de teste — {stamp} (Lisboa)",
+        "url": NOTIFICATION_URL,
+    }
+
+
 def _parse_date(value: str) -> date:
     return datetime.strptime(value, "%Y-%m-%d").date()
 
