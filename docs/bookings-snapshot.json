@@ -410,12 +410,6 @@
       "guestFirstName": "Marie"
     },
     {
-      "listing": "T1",
-      "startDate": "2026-07-21",
-      "endDate": "2026-07-26",
-      "guestFirstName": "Kathryn Jane"
-    },
-    {
       "listing": "EA",
       "startDate": "2026-07-24",
       "endDate": "2026-08-21",
@@ -426,6 +420,12 @@
       "startDate": "2026-07-27",
       "endDate": "2026-08-05",
       "guestFirstName": "Nicolas"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-07-27",
+      "endDate": "2026-08-07",
+      "guestFirstName": "Raúl"
     },
     {
       "listing": "T1",
