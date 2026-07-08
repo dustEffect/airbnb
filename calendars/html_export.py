@@ -392,20 +392,21 @@ main {
   pointer-events: none;
   z-index: 3;
   overflow: hidden;
-  --grid-gap: 2px;
+  --mask-cell-width: var(--day-size);
+  --mask-grid-gap: 2px;
   -webkit-mask-image: repeating-linear-gradient(
     to right,
     #000 0,
-    #000 var(--day-size),
-    transparent var(--day-size),
-    transparent calc(var(--day-size) + var(--grid-gap))
+    #000 var(--mask-cell-width),
+    transparent var(--mask-cell-width),
+    transparent calc(var(--mask-cell-width) + var(--mask-grid-gap))
   );
   mask-image: repeating-linear-gradient(
     to right,
     #000 0,
-    #000 var(--day-size),
-    transparent var(--day-size),
-    transparent calc(var(--day-size) + var(--grid-gap))
+    #000 var(--mask-cell-width),
+    transparent var(--mask-cell-width),
+    transparent calc(var(--mask-cell-width) + var(--mask-grid-gap))
   );
 }
 .stay-label-mask .stay-label {
@@ -1229,9 +1230,16 @@ def render_calendar_html(
       .forEach((el) => el.remove());
   }}
 
+  function gridGapPx(grid) {{
+    const style = getComputedStyle(grid);
+    const raw = style.columnGap || style.gap || "2px";
+    const parsed = parseFloat(raw);
+    return Number.isFinite(parsed) ? parsed : 2;
+  }}
+
   function layoutStayLabelMask(maskKey, label, cells) {{
-    removeStayLabelMask(maskKey);
     if (!label || cells.length === 0) return;
+    removeStayLabelMask(maskKey);
 
     const grid = cells[0].closest(".grid");
     if (!grid) return;
@@ -1241,17 +1249,27 @@ def render_calendar_html(
 
     const first = inGrid[0];
     const last = inGrid[inGrid.length - 1];
+    const gridRect = grid.getBoundingClientRect();
+    const firstRect = first.getBoundingClientRect();
+    const lastRect = last.getBoundingClientRect();
+    const cellWidth = firstRect.width;
+    const gap =
+      inGrid.length >= 2
+        ? inGrid[1].getBoundingClientRect().left - firstRect.right
+        : gridGapPx(grid);
     const mask = document.createElement("div");
     mask.className = "stay-label-mask";
     mask.dataset.stayLabelKey = maskKey;
+    mask.style.setProperty("--mask-cell-width", cellWidth + "px");
+    mask.style.setProperty("--mask-grid-gap", gap + "px");
     const labelEl = document.createElement("span");
     labelEl.className = "stay-label";
     labelEl.textContent = label;
     mask.appendChild(labelEl);
-    mask.style.left = first.offsetLeft + "px";
-    mask.style.top = first.offsetTop + "px";
-    mask.style.width = last.offsetLeft + last.offsetWidth - first.offsetLeft + "px";
-    mask.style.height = first.offsetHeight + "px";
+    mask.style.left = firstRect.left - gridRect.left + "px";
+    mask.style.top = firstRect.top - gridRect.top + "px";
+    mask.style.width = lastRect.right - firstRect.left + "px";
+    mask.style.height = firstRect.height + "px";
     grid.appendChild(mask);
   }}
 

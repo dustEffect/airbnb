@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from pathlib import Path
 
@@ -188,13 +189,18 @@ class TestRenderCalendarHtml:
         assert 'title="T2: 2026-03-10 → 2026-03-12 | Hóspedes: 2a"' in html_text
         assert 'data-stay-key="HMTEST001"' in html_text
 
-    def test_guest_display_label_uses_data_attribute_and_spanning_mask(self) -> None:
+    def test_guest_display_label_uses_spanning_mask_not_inline_text(self) -> None:
         bookings = [_booking(T2, "2026-03-10", "2026-03-12", guest_first_name="Jean")]
         html_text = render_calendar_html(year=2026, bookings=bookings)
         assert 'data-guest-label="2a - Jean"' in html_text
-        assert ">2a - Jean</div>" not in html_text
+        assert not re.search(r'id="T2-20260310"[^>]*>2a - Jean</div>', html_text)
         assert 'title="T2: 2026-03-10 → 2026-03-12 | Hóspedes: 2a - Jean"' in html_text
-        assert "relayoutAllStayLabels" in html_text
+        assert "getBoundingClientRect" in html_text
+        assert "layoutStayLabelMask" in html_text
+        assert (
+            "if (!label || cells.length === 0) return;\n    removeStayLabelMask(maskKey);"
+            in html_text
+        )
 
     def test_long_press_opens_airbnb_stay_url(self) -> None:
         html_text = render_calendar_html(
