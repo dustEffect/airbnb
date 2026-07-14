@@ -422,6 +422,12 @@
       "guestFirstName": "Nicolas"
     },
     {
+      "listing": "T1",
+      "startDate": "2026-07-30",
+      "endDate": "2026-08-03",
+      "guestFirstName": "Matt"
+    },
+    {
       "listing": "T2",
       "startDate": "2026-08-08",
       "endDate": "2026-08-12",
@@ -434,6 +440,12 @@
       "guestFirstName": "Lyudmil"
     },
     {
+      "listing": "T2",
+      "startDate": "2026-08-22",
+      "endDate": "2026-08-29",
+      "guestFirstName": "Laya"
+    },
+    {
       "listing": "EB",
       "startDate": "2026-08-30",
       "endDate": "2026-09-04",
@@ -444,6 +456,12 @@
       "startDate": "2026-09-01",
       "endDate": "2026-09-09",
       "guestFirstName": "Sylvie"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-09-06",
+      "endDate": "2026-09-11",
+      "guestFirstName": "재운"
     },
     {
       "listing": "T0",
