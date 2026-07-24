@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23",
+  "generatedAt": "2026-07-24",
   "bookings": [
     {
       "listing": "EB",
@@ -456,6 +456,12 @@
       "startDate": "2026-08-22",
       "endDate": "2026-08-29",
       "guestFirstName": "Laya"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-08-26",
+      "endDate": "2026-08-31",
+      "guestFirstName": "Blessed Bernadette"
     },
     {
       "listing": "EB",
