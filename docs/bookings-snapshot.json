@@ -492,6 +492,12 @@
       "startDate": "2026-09-08",
       "endDate": "2026-09-12",
       "guestFirstName": "Anika"
+    },
+    {
+      "listing": "T2",
+      "startDate": "2026-09-14",
+      "endDate": "2026-09-18",
+      "guestFirstName": "Jacques"
     }
   ]
 }
