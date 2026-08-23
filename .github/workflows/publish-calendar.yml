@@ -37,7 +37,7 @@ jobs:
         id: venv-cache
         with:
           path: .venv
-          key: venv-${{ runner.os }}-py3.12-${{ hashFiles('pyproject.toml') }}
+          key: venv-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Restore Playwright browsers
         uses: actions/cache/restore@v4
@@ -62,7 +62,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-py3.12-${{ hashFiles('pyproject.toml') }}
+          key: venv-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Save Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
