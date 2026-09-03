@@ -573,9 +573,21 @@
     },
     {
       "listing": "EB",
+      "startDate": "2026-09-22",
+      "endDate": "2026-09-25",
+      "guestFirstName": "Daniel"
+    },
+    {
+      "listing": "EB",
       "startDate": "2026-09-26",
       "endDate": "2026-10-03",
       "guestFirstName": "Petra"
+    },
+    {
+      "listing": "T0",
+      "startDate": "2026-09-26",
+      "endDate": "2026-09-30",
+      "guestFirstName": "Alice"
     },
     {
       "listing": "T1",
