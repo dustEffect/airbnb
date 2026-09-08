@@ -603,6 +603,12 @@
     },
     {
       "listing": "EB",
+      "startDate": "2026-10-13",
+      "endDate": "2026-10-20",
+      "guestFirstName": "Frauke"
+    },
+    {
+      "listing": "EB",
       "startDate": "2026-10-28",
       "endDate": "2026-11-01",
       "guestFirstName": "Miriam"
