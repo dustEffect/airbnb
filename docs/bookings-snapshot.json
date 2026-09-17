@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16",
+  "generatedAt": "2026-09-17",
   "bookings": [
     {
       "listing": "EB",
@@ -572,6 +572,12 @@
       "guestFirstName": "Cara"
     },
     {
+      "listing": "T2",
+      "startDate": "2026-09-20",
+      "endDate": "2026-09-26",
+      "guestFirstName": "Anna"
+    },
+    {
       "listing": "EA",
       "startDate": "2026-09-22",
       "endDate": "2026-09-25",
@@ -612,6 +618,12 @@
       "startDate": "2026-10-01",
       "endDate": "2026-10-05",
       "guestFirstName": "Melanie"
+    },
+    {
+      "listing": "EA",
+      "startDate": "2026-10-09",
+      "endDate": "2026-10-14",
+      "guestFirstName": "Rebecca"
     },
     {
       "listing": "T2",
