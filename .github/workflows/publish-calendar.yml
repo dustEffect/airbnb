@@ -98,7 +98,8 @@ jobs:
             echo "Calendar unchanged; skipping commit."
           else
             git commit -m "Update calendar"
-            git push
+            git pull --rebase origin main
+            git push origin HEAD:main
           fi
 
       - name: Verify GitHub Pages deployment
